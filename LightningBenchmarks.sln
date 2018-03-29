@@ -5,11 +5,15 @@ VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{6DDE1229-2DC3-41BA-97D3-E6E456F1175F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lightning.Alice", "src\Lightning.Alice\Lightning.Alice.csproj", "{D78BD98C-AB52-4D78-93CB-DB6D203B2788}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightning.Alice", "src\Lightning.Alice\Lightning.Alice.csproj", "{D78BD98C-AB52-4D78-93CB-DB6D203B2788}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lightning.Bob", "src\Lightning.Bob\Lightning.Bob.csproj", "{477D721D-4DC4-4C3C-B23D-2E1189288D90}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightning.Bob", "src\Lightning.Bob\Lightning.Bob.csproj", "{477D721D-4DC4-4C3C-B23D-2E1189288D90}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "src\Common\Common.csproj", "{1CDEC529-25E5-46F2-B699-CFCCA683D500}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "src\Common\Common.csproj", "{1CDEC529-25E5-46F2-B699-CFCCA683D500}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{CF2E771D-0F8E-4728-8C4F-F315A20418CF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightning.Tests", "tests\Lightning.Tests\Lightning.Tests.csproj", "{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,9 +23,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{D78BD98C-AB52-4D78-93CB-DB6D203B2788}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -60,10 +61,29 @@ Global
 		{1CDEC529-25E5-46F2-B699-CFCCA683D500}.Release|x64.Build.0 = Release|Any CPU
 		{1CDEC529-25E5-46F2-B699-CFCCA683D500}.Release|x86.ActiveCfg = Release|Any CPU
 		{1CDEC529-25E5-46F2-B699-CFCCA683D500}.Release|x86.Build.0 = Release|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Debug|x64.Build.0 = Debug|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Debug|x86.Build.0 = Debug|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Release|x64.ActiveCfg = Release|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Release|x64.Build.0 = Release|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Release|x86.ActiveCfg = Release|Any CPU
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{D78BD98C-AB52-4D78-93CB-DB6D203B2788} = {6DDE1229-2DC3-41BA-97D3-E6E456F1175F}
 		{477D721D-4DC4-4C3C-B23D-2E1189288D90} = {6DDE1229-2DC3-41BA-97D3-E6E456F1175F}
 		{1CDEC529-25E5-46F2-B699-CFCCA683D500} = {6DDE1229-2DC3-41BA-97D3-E6E456F1175F}
+		{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E} = {CF2E771D-0F8E-4728-8C4F-F315A20418CF}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8FB512CE-0C5D-4C8A-9D68-F339604E8AFC}
 	EndGlobalSection
 EndGlobal
