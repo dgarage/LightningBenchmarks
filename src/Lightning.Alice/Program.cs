@@ -17,34 +17,36 @@ namespace Lightning.Alice
 		{
 			new AliceRunner().Run(args);
 		}
-		class AliceRunner : HostRunner<AliceStartup>
+	}
+
+	public class AliceRunner : HostRunner<AliceStartup>
+	{
+		public override StandardConfiguration.DefaultConfiguration CreateDefaultConfiguration()
 		{
-			public override StandardConfiguration.DefaultConfiguration CreateDefaultConfiguration()
-			{
-				return new DefaultConfiguration();
-			}
+			return new DefaultConfiguration();
 		}
-		class AliceStartup
+	}
+
+	public class AliceStartup
+	{
+		private IConfiguration _Configuration;
+
+		public AliceStartup(IConfiguration configuration)
 		{
-			private IConfiguration _Configuration;
+			_Configuration = configuration;
+		}
+		public void ConfigureServices(IServiceCollection services)
+		{
+			StartupDefault.ConfigureServices(_Configuration, services);
+		}
 
-			public AliceStartup(IConfiguration configuration)
-			{
-				_Configuration = configuration;
-			}
-			public void ConfigureServices(IServiceCollection services)
-			{
-				StartupDefault.ConfigureServices(_Configuration, services);
-			}
-
-			public void Configure(
-			IApplicationBuilder app,
-			IHostingEnvironment env,
-			ILoggerFactory loggerFactory)
-			{
-				StartupDefault.Configure(app, env, loggerFactory);
-				Logs.Configure(loggerFactory);
-			}
+		public void Configure(
+		IApplicationBuilder app,
+		IHostingEnvironment env,
+		ILoggerFactory loggerFactory)
+		{
+			StartupDefault.Configure(app, env, loggerFactory);
+			Logs.Configure(loggerFactory);
 		}
 	}
 }

@@ -10,10 +10,10 @@ namespace Lightning.Alice
 {
     public class AliceController : Controller
     {
+		[HttpPost]
 		public Task<IActionResult> Fund(
-			string bolt11,
 			[ModelBinder(typeof(NodeInfoModelBinder))]
-			NodeInfo node)
+			NodeInfo nodeInfo)
 		{
 			return null;
 		}

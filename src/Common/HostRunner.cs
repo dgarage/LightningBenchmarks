@@ -10,24 +10,56 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Common
 {
-    public abstract class HostRunner<TStartup> where TStartup : class
-    {
+	public class ConsoleLogProviderFactory : LogProviderFactory
+	{
+		ConsoleLoggerProcessor processor = new ConsoleLoggerProcessor();
+		public override ILoggerProvider Create()
+		{
+			return new CustomConsoleLogProvider(processor);
+		}
+		public override void Dispose()
+		{
+			if(processor != null)
+				processor.Dispose();
+		}
+	}
+	public abstract class LogProviderFactory : IDisposable
+	{
+		public abstract ILoggerProvider Create();
+		public abstract void Dispose();
+	}
+	public abstract class HostRunner<TStartup> : IDisposable
+		where TStartup : class
+	{
 		public void Run(string[] args)
+		{
+			RunAsync(args).GetAwaiter().GetResult();
+		}
+
+		public LogProviderFactory LogProviderFactory
+		{
+			get; set;
+		}
+
+		public async Task RunAsync(string[] args)
 		{
 			ServicePointManager.DefaultConnectionLimit = 100;
 			IWebHost host = null;
 			var processor = new ConsoleLoggerProcessor();
-			CustomConsoleLogProvider loggerProvider = new CustomConsoleLogProvider(processor);
+
+			var logProviderFactory = LogProviderFactory ?? new ConsoleLogProviderFactory();
 			var loggerFactory = new LoggerFactory();
-			loggerFactory.AddProvider(loggerProvider);
+			loggerFactory.AddProvider(logProviderFactory.Create());
 			var logger = loggerFactory.CreateLogger("Configuration");
 
 
 			try
 			{
+				Common.Logging.CommonLogs.Configure(loggerFactory);
 				var defaultConf = CreateDefaultConfiguration();
 				defaultConf.Logger = logger;
 				var conf = defaultConf.CreateConfiguration(args);
@@ -42,17 +74,18 @@ namespace Common
 				   {
 					   l.AddFilter("Microsoft", LogLevel.Error);
 					   l.AddFilter("Microsoft.AspNetCore.Antiforgery.Internal", LogLevel.Critical);
-					   l.AddProvider(new CustomConsoleLogProvider(processor));
+					   l.AddProvider(logProviderFactory.Create());
 				   })
 				   .UseStartup<TStartup>()
 					.Build();
-				host.StartAsync().GetAwaiter().GetResult();
+				Host = host;
+				await host.StartAsync();
 				var urls = host.ServerFeatures.Get<IServerAddressesFeature>().Addresses;
 				foreach(var url in urls)
 				{
 					logger.LogInformation("Listening on " + url);
 				}
-				host.WaitForShutdown();
+				await host.WaitForShutdownAsync();
 			}
 			catch(ConfigException ex)
 			{
@@ -64,10 +97,21 @@ namespace Common
 				processor.Dispose();
 				if(host != null)
 					host.Dispose();
-				loggerProvider.Dispose();
+				logProviderFactory.Dispose();
 			}
 		}
 
+		public IWebHost Host
+		{
+			get; set;
+		}
+
 		public abstract DefaultConfiguration CreateDefaultConfiguration();
-    }
+
+		public void Dispose()
+		{
+			Host.StopAsync().GetAwaiter().GetResult();
+			Host.Dispose();
+		}
+	}
 }
