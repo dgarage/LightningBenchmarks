@@ -1,9 +1,12 @@
-﻿using Common.Configuration;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Common.CLightning;
+using Common.Configuration;
 using Common.Logging;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console.Internal;
+using NBitcoin.RPC;
 using StandardConfiguration;
 using System;
 using System.Collections.Generic;
@@ -104,6 +107,28 @@ namespace Common
 		public IWebHost Host
 		{
 			get; set;
+		}
+
+		private CLightningRPCClient _RPC;
+		public CLightningRPCClient RPC
+		{
+			get
+			{
+				if(_RPC == null)
+					_RPC = Host.Services.GetRequiredService<CLightningRPCClient>();
+				return _RPC;
+			}
+		}
+
+		private RPCClient _BitcoinRPC;
+		public RPCClient BitcoinRPC
+		{
+			get
+			{
+				if(_BitcoinRPC == null)
+					_BitcoinRPC = Host.Services.GetRequiredService<RPCClient>();
+				return _BitcoinRPC;
+			}
 		}
 
 		public abstract DefaultConfiguration CreateDefaultConfiguration();

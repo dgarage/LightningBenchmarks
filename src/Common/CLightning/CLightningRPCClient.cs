@@ -174,17 +174,23 @@ namespace Common.CLightning
         }
 
         static NBitcoin.DataEncoders.DataEncoder InvoiceIdEncoder = NBitcoin.DataEncoders.Encoders.Base58;
-        async Task<LightningInvoice> ILightningInvoiceClient.CreateInvoice(LightMoney amount, TimeSpan expiry, CancellationToken cancellation)
+        Task<LightningInvoice> ILightningInvoiceClient.CreateInvoice(LightMoney amount, TimeSpan expiry, CancellationToken cancellation)
         {
-            var id = InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));
-            var invoice = await SendCommandAsync<CLightningInvoice>("invoice", new object[] { amount.MilliSatoshi, id, "" }, cancellation: cancellation);
-            invoice.Label = id;
-            invoice.MilliSatoshi = amount;
-            invoice.Status = "unpaid";
-            return ToLightningInvoice(invoice);
+			return CreateInvoice(amount, expiry, cancellation);
         }
 
-        private static LightningInvoice ToLightningInvoice(CLightningInvoice invoice)
+		public async Task<LightningInvoice> CreateInvoice(LightMoney amount, TimeSpan? expiry = null, CancellationToken cancellation = default(CancellationToken))
+		{
+			var id = InvoiceIdEncoder.EncodeData(RandomUtils.GetBytes(20));
+			var invoice = await SendCommandAsync<CLightningInvoice>("invoice", new object[] { amount.MilliSatoshi, id, "" }, cancellation: cancellation);
+			invoice.Label = id;
+			invoice.MilliSatoshi = amount;
+			invoice.Status = "unpaid";
+			return ToLightningInvoice(invoice);
+		}
+
+
+		private static LightningInvoice ToLightningInvoice(CLightningInvoice invoice)
         {
             return new LightningInvoice()
             {

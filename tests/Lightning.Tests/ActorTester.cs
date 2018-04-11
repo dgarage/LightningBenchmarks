@@ -1,4 +1,6 @@
-﻿using Lightning.Alice;
+﻿using Common.CLightning;
+using Lightning.Alice;
+using NBitcoin.RPC;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,6 +11,18 @@ namespace Lightning.Tests
 {
 	public interface IActorTester
 	{
+		string P2PHost
+		{
+			get;
+		}
+		RPCClient BitcoinRPC
+		{
+			get;
+		}
+		CLightningRPCClient RPC
+		{
+			get;
+		}
 		void Start();
 	}
 	public class ActorTester<TRunner, TStartup> : IActorTester, IDisposable
@@ -44,6 +58,11 @@ namespace Lightning.Tests
 			private set;
 		}
 
+		public string P2PHost
+		{
+			get; set;
+		}
+
 		public ActorTester(string baseDirectory, string name, int lightningPort)
 		{
 			RPCUser = Utils.GetVariable("TESTS_RPCUSER", "ceiwHEbqWI83");
@@ -51,6 +70,7 @@ namespace Lightning.Tests
 			RPCURL = Utils.GetVariable("TESTS_RPCURL", "http://127.0.0.1:24735/");
 			CLightning = Utils.GetVariable("TESTS_CLIGHTNING", $"tcp://127.0.0.1:{lightningPort}/");
 			Directory = Path.Combine(baseDirectory, name);
+			P2PHost = name;
 			Port = Utils.FreeTcpPort();
 		}
 
@@ -93,6 +113,9 @@ namespace Lightning.Tests
 			get; set;
 		}
 
+		public RPCClient BitcoinRPC => Runner.BitcoinRPC;
+
+		public CLightningRPCClient RPC => Runner.RPC;
 
 		public void Dispose()
 		{
@@ -100,7 +123,8 @@ namespace Lightning.Tests
 			{
 				lease.Dispose();
 			}
-			Running.Wait();
+			if(Running != null)
+				Running.Wait();
 		}
 	}
 }

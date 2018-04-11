@@ -1,4 +1,5 @@
 ﻿using Common;
+using Common.CLightning;
 using Common.Logging;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console.Internal;
+using NBitcoin.RPC;
 using StandardConfiguration;
 using System;
 

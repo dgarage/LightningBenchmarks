@@ -1,0 +1,32 @@
+version: "3"    
+services:
+  dev: 
+    image: nicolasdorier/docker-bitcoin:0.16.0
+    environment:
+      BITCOIN_EXTRA_ARGS: |
+        regtest=1
+        connect=miner:39388
+    links:
+      - miner
+
+  miner:
+    image: nicolasdorier/docker-bitcoin:0.16.0
+    environment:
+      BITCOIN_EXTRA_ARGS: |
+        rpcuser=ceiwHEbqWI83
+        rpcpassword=DwubwWsoo3
+        regtest=1
+        server=1
+        rpcport=43782
+        port=39388
+        whitelist=0.0.0.0/0
+    ports: 
+      - "24735:43782"
+    expose:
+      - "43782" # RPC
+      - "39388" # P2P
+    volumes:
+      - "btc_datadir:/data"
+
+volumes:
+    btc_datadir:

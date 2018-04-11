@@ -1,0 +1,27 @@
+version: "3"    
+services:
+  dev: 
+    links:
+      - actor0
+  actor0:
+    image: nicolasdorier/clightning:0.0.0.3
+    environment: 
+      EXPOSE_TCP: "true"
+      LIGHTNINGD_OPT: |
+        bitcoin-datadir=/etc/bitcoin
+        bitcoin-rpcconnect=miner
+        network=regtest
+        ipaddr=actor0
+        log-level=debug
+    ports:
+      - "24736:9835" # api port
+    expose:
+      - "9735" # server port
+      - "9835" # api port
+    volumes:
+      - "btc_datadir:/etc/bitcoin"
+      - "actor0_datadir:/root/.lightning"
+    links:
+      - miner
+volumes:
+    actor0_datadir:

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Lightning.Tests": {
+      "commandName": "Project",
+      "commandLineArgs": "alice-pays-bob"
+    }
+  }
+}

@@ -37,6 +37,7 @@ namespace Common
 			RPCArgs.TestRPCAsync(Network.RegTest, btcrpc, default(CancellationToken)).GetAwaiter().GetResult();
 
 			var rpc = new CLightning.CLightningRPCClient(connectionString.ToUri(true), Network.RegTest);
+			services.AddSingleton(rpc);
 			services.AddSingleton<ILightningInvoiceClient>(rpc);
 			try
 			{
