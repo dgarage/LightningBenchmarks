@@ -1,0 +1,99 @@
+version: "3"
+services:
+  dev:
+    image: nicolasdorier/docker-bitcoin:0.16.0
+    environment:
+      BITCOIN_EXTRA_ARGS: |
+        regtest=1
+        connect=miner:39388
+    links:
+    - miner
+    - Alice
+    - Bob
+    - Carol
+  miner:
+    image: nicolasdorier/docker-bitcoin:0.16.0
+    environment:
+      BITCOIN_EXTRA_ARGS: |
+        rpcuser=ceiwHEbqWI83
+        rpcpassword=DwubwWsoo3
+        regtest=1
+        server=1
+        rpcport=43782
+        port=39388
+        whitelist=0.0.0.0/0
+    ports:
+    - "24735:43782"
+    expose:
+    - "43782"
+    - "39388"
+    volumes:
+    - "btc_datadir:/data"
+  Alice:
+    image: nicolasdorier/clightning:0.0.0.6-dev
+    environment:
+      EXPOSE_TCP: "true"
+      LIGHTNINGD_OPT: |
+        bitcoin-datadir=/etc/bitcoin
+        bitcoin-rpcconnect=miner
+        network=regtest
+        ipaddr=Alice
+        log-level=debug
+        dev-broadcast-interval=1000
+    ports:
+    - "24736:9835"
+    expose:
+    - "9735"
+    - "9835"
+    volumes:
+    - "btc_datadir:/etc/bitcoin"
+    - "Alice_datadir:/root/.lightning"
+    links:
+    - miner
+  Bob:
+    image: nicolasdorier/clightning:0.0.0.6-dev
+    environment:
+      EXPOSE_TCP: "true"
+      LIGHTNINGD_OPT: |
+        bitcoin-datadir=/etc/bitcoin
+        bitcoin-rpcconnect=miner
+        network=regtest
+        ipaddr=Bob
+        log-level=debug
+        dev-broadcast-interval=1000
+    ports:
+    - "24737:9835"
+    expose:
+    - "9735"
+    - "9835"
+    volumes:
+    - "btc_datadir:/etc/bitcoin"
+    - "Bob_datadir:/root/.lightning"
+    links:
+    - miner
+  Carol:
+    image: nicolasdorier/clightning:0.0.0.6-dev
+    environment:
+      EXPOSE_TCP: "true"
+      LIGHTNINGD_OPT: |
+        bitcoin-datadir=/etc/bitcoin
+        bitcoin-rpcconnect=miner
+        network=regtest
+        ipaddr=Carol
+        log-level=debug
+        dev-broadcast-interval=1000
+    ports:
+    - "24738:9835"
+    expose:
+    - "9735"
+    - "9835"
+    volumes:
+    - "btc_datadir:/etc/bitcoin"
+    - "Carol_datadir:/root/.lightning"
+    links:
+    - miner
+volumes:
+  btc_datadir: 
+  Alice_datadir: 
+  Bob_datadir: 
+  Carol_datadir: 

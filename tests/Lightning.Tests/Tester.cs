@@ -44,13 +44,14 @@ namespace Lightning.Tests
 		public async Task CreateChannel(IActorTester from, IActorTester to)
 		{
 			var miner = from.BitcoinRPC;
+			var toInfo = await to.RPC.GetInfoAsync();
 			while(true)
 			{
 				try
 				{
-
 					var skippedStates = new[] { "ONCHAIN", "CHANNELD_SHUTTING_DOWN", "CLOSINGD_SIGEXCHANGE", "CLOSINGD_COMPLETE", "FUNDING_SPEND_SEEN" };
 					var channel = (await from.RPC.ListPeersAsync())
+								.Where(p => p.Id == toInfo.Id)
 								.SelectMany(p => p.Channels)
 								.Where(c => !skippedStates.Contains(c.State ?? ""))
 								.FirstOrDefault();
@@ -58,28 +59,32 @@ namespace Lightning.Tests
 					{
 						case null:
 							await WaitLNSynched(miner, to, from);
-							var toInfo = await to.RPC.GetInfoAsync();
 							var toNodeInfo = new NodeInfo(toInfo.Id, to.P2PHost, toInfo.Port);
 							await from.RPC.ConnectAsync(toNodeInfo);
-							var address = await from.RPC.NewAddressAsync();
-							await miner.SendToAddressAsync(address, Money.Coins(49.0m));
-							miner.Generate(1);
-							await WaitLNSynched(miner, to, from);
-							int i = 0;
+
 							while(true)
 							{
-								try
+								var funds = await from.RPC.ListFundsAsync();
+								if(funds.Outputs.Any(o => o.Status == "unconfirmed"))
 								{
-									await Task.Delay(1000);
-									await from.RPC.FundChannelAsync(toNodeInfo, Money.Satoshis(16777215));
-									break;
+									await miner.GenerateAsync(1);
+									continue;
 								}
-								catch when (i < 5) { }
-								i++;
+								if(!funds.Outputs.Any(o => o.Status == "confirmed"))
+								{
+									var address = await from.RPC.NewAddressAsync();
+									await miner.SendToAddressAsync(address, Money.Coins(49.0m));
+									await miner.GenerateAsync(1);
+									await WaitLNSynched(miner, to, from);
+									continue;
+								}
+								break;
 							}
+							await from.RPC.FundChannelAsync(toNodeInfo, Money.Satoshis(16777215));
+
 							break;
 						case "CHANNELD_AWAITING_LOCKIN":
-							miner.Generate(1);
+							await miner.GenerateAsync(1);
 							await WaitLNSynched(miner, to, from);
 							break;
 						case "CHANNELD_NORMAL":
@@ -90,7 +95,41 @@ namespace Lightning.Tests
 				}
 				catch(RPCException ex) when(ex.RPCCode == RPCErrorCode.RPC_WALLET_INSUFFICIENT_FUNDS)
 				{
-					miner.Generate(101);
+					await miner.GenerateAsync(101);
+				}
+			}
+		}
+
+		public async Task ConnectPeers(params ActorTester<AliceRunner, AliceStartup>[] peers)
+		{
+			var peersById = new Dictionary<string, ActorTester<AliceRunner, AliceStartup>>();
+			HashSet<string> connected = new HashSet<string>();
+			foreach(var peer in peers)
+			{
+				var peerInfo = await peer.RPC.GetInfoAsync();
+				peersById.TryAdd(peerInfo.Id, peer);
+				var peerNodeInfo = new NodeInfo(peerInfo.Id, peer.P2PHost, peerInfo.Port);
+				foreach(var peer2 in peers)
+				{
+					if(peer2.P2PHost == peer.P2PHost)
+						continue;
+					if(connected.Add(string.Join(',', new[] { peer2.P2PHost, peer.P2PHost }.OrderBy(s => s))))
+					{
+						await peer2.RPC.ConnectAsync(peerNodeInfo);
+					}
+				}
+			}
+
+			foreach(var peer in peers)
+			{
+				while(true)
+				{
+					var peerInfo = await peer.RPC.ListPeersAsync();
+					var known = peerInfo
+						.Where(pi => peersById.ContainsKey(pi.Id))
+						.Count();
+					if(known == peersById.Count - 1)
+						break;
 				}
 			}
 		}

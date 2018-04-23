@@ -1,5 +1,4 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Attributes.Exporters;
 using BenchmarkDotNet.Running;
 using Common.CLightning;
 using Lightning.Alice;
@@ -13,22 +12,32 @@ using Xunit.Abstractions;
 
 namespace Lightning.Tests
 {
-	public class AlicePayBob
+	public class AlicePayBobViaCarol
 	{
 		Tester Tester;
 		ActorTester<AliceRunner, AliceStartup> Alice;
 		ActorTester<AliceRunner, AliceStartup> Bob;
+		ActorTester<AliceRunner, AliceStartup> Carol;
 
 		[GlobalSetup]
 		public void Setup()
 		{
+			SetupAsync().GetAwaiter().GetResult();
+		}
+
+		private async Task SetupAsync()
+		{
 			Tester = Tester.Create();
 			Alice = Tester.CreateActor<Lightning.Alice.AliceRunner, Lightning.Alice.AliceStartup>("Alice");
 			Bob = Tester.CreateActor<Lightning.Alice.AliceRunner, Lightning.Alice.AliceStartup>("Bob");
+			Carol = Tester.CreateActor<Lightning.Alice.AliceRunner, Lightning.Alice.AliceStartup>("Carol");
 			Tester.Start();
-			Tester.CreateChannel(Alice, Bob).GetAwaiter().GetResult();
-		}
 
+			await Tester.ConnectPeers(Alice, Bob, Carol);
+			await Tester.CreateChannel(Alice, Carol);
+			await Tester.CreateChannel(Carol, Bob);
+			await Alice.WaitRouteTo(Bob);
+		}
 
 		[GlobalCleanup]
 		public void Cleanup()
@@ -37,44 +46,38 @@ namespace Lightning.Tests
 		}
 
 		[Benchmark(Baseline = true)]
-		public async Task RunAlicePayBob()
+		public async Task RunAlicePayBobViaCarol()
 		{
-			await RunAlicePayBobCore(1);
+			await RunAlicePayBobViaCarol(1);
 		}
 
 		[Benchmark]
-		public async Task RunAlicePayBob5x()
+		public async Task RunAlicePayBobViaCarol5x()
 		{
-			await RunAlicePayBobCore(5);
+			await RunAlicePayBobViaCarol(5);
 		}
 
 		[Benchmark]
-		public async Task RunAlicePayBob10x()
+		public async Task RunAlicePayBobViaCarol10x()
 		{
-			await RunAlicePayBobCore(10);
+			await RunAlicePayBobViaCarol(10);
 		}
 
 		[Benchmark]
-		public async Task RunAlicePayBob15x()
+		public async Task RunAlicePayBobViaCarol15x()
 		{
-			await RunAlicePayBobCore(15);
+			await RunAlicePayBobViaCarol(15);
 		}
 
-		private Task RunAlicePayBobCore(int concurrent)
+		private Task RunAlicePayBobViaCarol(int concurrent)
 		{
 			return Task.WhenAll(Enumerable.Range(0, concurrent)
 				.Select(async _ =>
 				{
-					var invoice = await Bob.Runner.RPC.CreateInvoice(LightMoney.Satoshis(100));
+					var invoice = await Bob.Runner.RPC.CreateInvoice(LightMoney.Satoshis(1000));
 					await Alice.Runner.RPC.SendAsync(invoice.BOLT11);
 				}));
 		}
-
-
-		//[Benchmark]
-		public async Task RunCreateInvoice()
-		{
-			await Bob.Runner.RPC.CreateInvoice(LightMoney.Satoshis(100));
-		}
+		
 	}
 }

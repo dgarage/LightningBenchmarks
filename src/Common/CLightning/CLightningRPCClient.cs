@@ -61,7 +61,27 @@ namespace Common.CLightning
             return peers;
         }
 
-        public Task FundChannelAsync(NodeInfo nodeInfo, Money money)
+		public async Task<JObject> GetRouteAsync(string peerId, LightMoney msatoshi, double riskFactor)
+		{
+			try
+			{
+				return await SendCommandAsync<JObject>("getroute", new object[] { peerId, msatoshi.MilliSatoshi, riskFactor });
+			}
+			catch(LightningRPCException ex) when (ex.Message == "Could not find a route") { return null; }
+		}
+
+		public async Task<ListFundsResponse> ListFundsAsync()
+		{
+			var result =  await SendCommandAsync<ListFundsResponse>("listfunds");
+			foreach(var o in result.Outputs)
+			{
+				o.Outpoint = new OutPoint(o.TransactionId, o.OutputIndex);
+				o.TxOut = new TxOut(o.Value, BitcoinAddress.Create(o.Address, Network));
+			}
+			return result;
+		}
+
+		public Task FundChannelAsync(NodeInfo nodeInfo, Money money)
         {
             return SendCommandAsync<object>("fundchannel", new object[] { nodeInfo.NodeId, money.Satoshi }, true);
         }
@@ -272,6 +292,70 @@ namespace Common.CLightning
 			get; set;
 		}
 		public string Network
+		{
+			get; set;
+		}
+	}
+
+
+//	{
+//  "outputs": [
+//    {
+//      "txid": "09c87e929a5e3f1b74e79747945d7e574d439348837a3e0f26ec0d827c6e9577",
+//      "output": 0,
+//      "value": 4900000000,
+//      "address": "2N8rbk9Ek3WKk8fHed1Ai7qDaYcGEou4X2E",
+//      "status": "confirmed"
+
+//	}
+//  ],
+//  "channels": []
+//}
+	public class ListFundsResponse
+	{
+		public class ListFundsOutpout
+		{
+			[JsonProperty("txid")]
+			[JsonConverter(typeof(NBitcoin.JsonConverters.UInt256JsonConverter))]
+			public uint256 TransactionId
+			{
+				get; set;
+			}
+			[JsonProperty("output")]
+			public int OutputIndex
+			{
+				get; set;
+			}
+			[JsonProperty("value")]
+			[JsonConverter(typeof(NBitcoin.JsonConverters.MoneyJsonConverter))]
+			public Money Value
+			{
+				get; set;
+			}
+			[JsonProperty("address")]
+			public string Address
+			{
+				get; set;
+			}
+			[JsonProperty("status")]
+			public string Status
+			{
+				get; set;
+			}
+
+			[JsonIgnore]
+			public OutPoint Outpoint
+			{
+				get; set;
+			}
+			[JsonIgnore]
+			public TxOut TxOut
+			{
+				get; set;
+			}
+		}
+
+		public ListFundsOutpout[] Outputs
 		{
 			get; set;
 		}

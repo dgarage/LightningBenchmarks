@@ -74,10 +74,19 @@ namespace Lightning.Tests
 			Port = Utils.FreeTcpPort();
 		}
 
-		private static object GetVariable(string defaultValue, string variableName)
+		public async Task WaitRouteTo(ActorTester<AliceRunner, AliceStartup> destination)
 		{
-			var value = Environment.GetEnvironmentVariable(variableName);
-			return string.IsNullOrEmpty(value) ? defaultValue : value;
+			var info = await destination.RPC.GetInfoAsync();
+			int blockToMine = 6;
+			while(true)
+			{
+				var route = await RPC.GetRouteAsync(info.Id, LightMoney.Satoshis(100), 0.0);
+				if(route != null)
+					break;
+				await Task.Delay(1000);
+				BitcoinRPC.Generate(blockToMine);
+				blockToMine = 1;
+			}
 		}
 
 		List<IDisposable> leases = new List<IDisposable>();
@@ -125,6 +134,11 @@ namespace Lightning.Tests
 			}
 			if(Running != null)
 				Running.Wait();
+		}
+
+		public override string ToString()
+		{
+			return P2PHost;
 		}
 	}
 }

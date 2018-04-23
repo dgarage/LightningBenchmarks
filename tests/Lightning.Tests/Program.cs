@@ -36,6 +36,29 @@ namespace Lightning.Tests
 			{
 				BenchmarkRunner.Run<AlicePayBob>(new AllowNonOptimized());
 			}
+
+			if(args[0].StartsWith("generate-alice-pays-bob-via-carol"))
+			{
+				Generate(new[] { "Alice", "Bob", "Carol" });
+			}
+			else if(args[0] == "alice-pays-bob-via-carol")
+			{
+				var o = new AlicePayBobViaCarol();
+				try
+				{
+					o.Setup();
+					o.RunAlicePayBobViaCarol().GetAwaiter().GetResult();
+					o.Cleanup();
+				}
+				finally
+				{
+					o.Cleanup();
+				}
+			}
+			else if(args[0] == "bench-alice-pays-bob-via-carol")
+			{
+				BenchmarkRunner.Run<AlicePayBobViaCarol>(new AllowNonOptimized());
+			}
 		}
 
 		public class AllowNonOptimized : ManualConfig
@@ -51,7 +74,7 @@ namespace Lightning.Tests
 				var job = new Job();
 				job.Run.TargetCount = 5;
 				job.Run.LaunchCount = 1;
-				job.Run.WarmupCount = 1;
+				job.Run.WarmupCount = 0;
 				Add(job);
 			}
 		}
