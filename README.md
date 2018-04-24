@@ -3,31 +3,33 @@
 ## Introduction
 
 This repository is meant to host different reproducible scenaris of usage of the lightning protocol.
-Those tests are easily reproducible via docker on any environment. 
+Those tests are easily reproducible via docker on any environment.
 
-However one might want to run the different actors of the scenaris on different machines.
+It currently benchmarks three scenaris:
 
-## Personas
+* Alice pays Bob
+* Alice pays Bob via Carol
+* Alices pay Bob
 
-### Alice
+It is testing 1, 5, 10, 15 payments at a time.
 
-Alice is an actor which always send payments to Bob.
+## Pre-requisite
 
-### Bob
+Pre-requisite depends only on docker and .NET Core
 
-Bob is an actor which always receive payments from Alice
+* Docker
+* Docker-Compose
+* .NET Core SDK as specified by [Microsoft website](https://www.microsoft.com/net/download).
 
-### Carol
+## How to run
 
-Carol is an actor which route payments from Alice to Bob
+Run the scripts `run-*` in `bench/Lightning.Bench`.
 
-## Scenaris
+## Under the hood
 
-### Scenario 1: Alice pays Bob (Direct payment)
+Before each tests, a docker-compose file is generated based on the templates found on `bench/Lightning.Bench/docker-fragments`.
 
-### Scenario 2: Alice pays Bob through Carol (Multi hop payment)
-
-### Scenario 3: Multiple Alice pays a single Bob (Payment Hub)
+Then, the project is built and the benchmark run.
 
 ## License
 

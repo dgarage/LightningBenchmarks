@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netcoreapp2.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<StartupObject>Lightning.Tests.TestProgram</StartupObject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="BenchmarkDotNet" Version="0.10.14" />
+		<PackageReference Include="YamlDotNet" Version="4.3.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Common\Common.csproj" />
+	</ItemGroup>
+
+</Project>
