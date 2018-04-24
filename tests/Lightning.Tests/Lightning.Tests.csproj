@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Lightning.Alice\Lightning.Alice.csproj" />
+    <ProjectReference Include="..\..\src\Common\Common.csproj" />
   </ItemGroup>
 
 </Project>

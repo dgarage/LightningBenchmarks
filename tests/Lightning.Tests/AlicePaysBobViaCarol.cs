@@ -1,7 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using Common.CLightning;
-using Lightning.Alice;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Linq;
@@ -15,9 +14,9 @@ namespace Lightning.Tests
 	public class AlicePaysBobViaCarol
 	{
 		Tester Tester;
-		ActorTester<AliceRunner, AliceStartup> Alice;
-		ActorTester<AliceRunner, AliceStartup> Bob;
-		ActorTester<AliceRunner, AliceStartup> Carol;
+		ActorTester Alice;
+		ActorTester Bob;
+		ActorTester Carol;
 
 		[GlobalSetup]
 		public void Setup()
@@ -28,9 +27,9 @@ namespace Lightning.Tests
 		private async Task SetupAsync()
 		{
 			Tester = Tester.Create();
-			Alice = Tester.CreateActor<Lightning.Alice.AliceRunner, Lightning.Alice.AliceStartup>("Alice");
-			Bob = Tester.CreateActor<Lightning.Alice.AliceRunner, Lightning.Alice.AliceStartup>("Bob");
-			Carol = Tester.CreateActor<Lightning.Alice.AliceRunner, Lightning.Alice.AliceStartup>("Carol");
+			Alice = Tester.CreateActor("Alice");
+			Bob = Tester.CreateActor("Bob");
+			Carol = Tester.CreateActor("Carol");
 			Tester.Start();
 
 			await Tester.ConnectPeers(Alice, Bob, Carol);
@@ -74,8 +73,8 @@ namespace Lightning.Tests
 			return Task.WhenAll(Enumerable.Range(0, concurrent)
 				.Select(async _ =>
 				{
-					var invoice = await Bob.Runner.RPC.CreateInvoice(LightMoney.Satoshis(1000));
-					await Alice.Runner.RPC.SendAsync(invoice.BOLT11);
+					var invoice = await Bob.RPC.CreateInvoice(LightMoney.Satoshis(1000));
+					await Alice.RPC.SendAsync(invoice.BOLT11);
 				}));
 		}
 		

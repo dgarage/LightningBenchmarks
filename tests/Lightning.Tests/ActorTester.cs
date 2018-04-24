@@ -1,5 +1,6 @@
-﻿using Common.CLightning;
-using Lightning.Alice;
+﻿using Common;
+using Common.CLightning;
+using Microsoft.Extensions.DependencyInjection;
 using NBitcoin.RPC;
 using System;
 using System.Collections.Generic;
@@ -9,25 +10,7 @@ using System.Threading.Tasks;
 
 namespace Lightning.Tests
 {
-	public interface IActorTester
-	{
-		string P2PHost
-		{
-			get;
-		}
-		RPCClient BitcoinRPC
-		{
-			get;
-		}
-		CLightningRPCClient RPC
-		{
-			get;
-		}
-		void Start();
-	}
-	public class ActorTester<TRunner, TStartup> : IActorTester, IDisposable
-			where TRunner : Common.HostRunner<TStartup>, new()
-			where TStartup : class
+	public class ActorTester
 	{
 		public int Port
 		{
@@ -74,7 +57,7 @@ namespace Lightning.Tests
 			Port = Utils.FreeTcpPort();
 		}
 
-		public async Task WaitRouteTo(ActorTester<AliceRunner, AliceStartup> destination)
+		public async Task WaitRouteTo(ActorTester destination)
 		{
 			var info = await destination.RPC.GetInfoAsync();
 			int blockToMine = 6;
@@ -89,7 +72,6 @@ namespace Lightning.Tests
 			}
 		}
 
-		List<IDisposable> leases = new List<IDisposable>();
 
 		public void Start()
 		{
@@ -106,35 +88,21 @@ namespace Lightning.Tests
 			File.Create(conf).Close();
 			File.WriteAllText(conf, config.ToString());
 			var parameters = new[] { "--datadir", Directory, "--conf", conf };
-			Runner = new TRunner();
-			if(Logs.LogProvider != null)
-			{
-				Runner.LogProviderFactory = new XUnitLogProviderFactory(Logs.LogProvider);
-			}
-			Running = Runner.RunAsync(parameters);
-			leases.Add(Runner);
+
+			var iconf = new DefaultConfigurationBase() { Actor = P2PHost }.CreateConfiguration(parameters);
+			var services = new ServiceCollection();
+			StartupDefault.ConfigureServices(iconf, services);
+			ServiceProvider = services.BuildServiceProvider();
 		}
 
-		Task Running;
-
-		public TRunner Runner
+		public IServiceProvider ServiceProvider
 		{
 			get; set;
 		}
 
-		public RPCClient BitcoinRPC => Runner.BitcoinRPC;
+		public RPCClient BitcoinRPC => ServiceProvider.GetRequiredService<RPCClient>();
 
-		public CLightningRPCClient RPC => Runner.RPC;
-
-		public void Dispose()
-		{
-			foreach(var lease in leases)
-			{
-				lease.Dispose();
-			}
-			if(Running != null)
-				Running.Wait();
-		}
+		public CLightningRPCClient RPC => ServiceProvider.GetRequiredService<CLightningRPCClient>();
 
 		public override string ToString()
 		{

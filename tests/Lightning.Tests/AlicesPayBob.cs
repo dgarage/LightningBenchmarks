@@ -1,6 +1,5 @@
 ﻿using BenchmarkDotNet.Attributes;
 using Common.CLightning;
-using Lightning.Alice;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,8 +12,8 @@ namespace Lightning.Tests
 	{
 		public const int AliceCount = 15;
 		Tester Tester;
-		ActorTester<AliceRunner, AliceStartup>[] Alices = new ActorTester<AliceRunner, AliceStartup>[AliceCount];
-		ActorTester<AliceRunner, AliceStartup> Bob;
+		ActorTester[] Alices = new ActorTester[AliceCount];
+		ActorTester Bob;
 
 		[GlobalSetup]
 		public void Setup()
@@ -25,10 +24,10 @@ namespace Lightning.Tests
 		private async Task SetupAsync()
 		{
 			Tester = Tester.Create();
-			Bob = Tester.CreateActor<Lightning.Alice.AliceRunner, Lightning.Alice.AliceStartup>("Bob");
+			Bob = Tester.CreateActor("Bob");
 			for(int i = 0; i < Alices.Length; i++)
 			{
-				Alices[i] = Tester.CreateActor<Lightning.Alice.AliceRunner, Lightning.Alice.AliceStartup>("Alice" + i);
+				Alices[i] = Tester.CreateActor("Alice" + i);
 			}
 			Tester.Start();
 
@@ -70,8 +69,8 @@ namespace Lightning.Tests
 				.Select(async i =>
 				{
 					var alice = Alices[i];
-					var invoice = await Bob.Runner.RPC.CreateInvoice(LightMoney.Satoshis(1000));
-					await alice.Runner.RPC.SendAsync(invoice.BOLT11);
+					var invoice = await Bob.RPC.CreateInvoice(LightMoney.Satoshis(1000));
+					await alice.RPC.SendAsync(invoice.BOLT11);
 				}));
 		}
 

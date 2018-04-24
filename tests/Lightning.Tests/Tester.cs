@@ -5,7 +5,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using Lightning.Alice;
 using NBitcoin;
 using Common.CLightning;
 using NBitcoin.RPC;
@@ -26,7 +25,7 @@ namespace Lightning.Tests
 		}
 
 		List<IDisposable> leases = new List<IDisposable>();
-		List<IActorTester> actors = new List<IActorTester>();
+		List<ActorTester> actors = new List<ActorTester>();
 
 		public void Start()
 		{
@@ -41,7 +40,7 @@ namespace Lightning.Tests
 			}
 		}
 
-		public async Task CreateChannel(IActorTester from, IActorTester to)
+		public async Task CreateChannel(ActorTester from, ActorTester to)
 		{
 			var miner = from.BitcoinRPC;
 			var toInfo = await to.RPC.GetInfoAsync();
@@ -100,9 +99,9 @@ namespace Lightning.Tests
 			}
 		}
 
-		public async Task ConnectPeers(params ActorTester<AliceRunner, AliceStartup>[] peers)
+		public async Task ConnectPeers(params ActorTester[] peers)
 		{
-			var peersById = new Dictionary<string, ActorTester<AliceRunner, AliceStartup>>();
+			var peersById = new Dictionary<string, ActorTester>();
 			HashSet<string> connected = new HashSet<string>();
 			foreach(var peer in peers)
 			{
@@ -134,7 +133,7 @@ namespace Lightning.Tests
 			}
 		}
 
-		private async Task WaitLNSynched(RPCClient miner, params IActorTester[] testers)
+		private async Task WaitLNSynched(RPCClient miner, params ActorTester[] testers)
 		{
 			while(true)
 			{
@@ -152,13 +151,10 @@ namespace Lightning.Tests
 		}
 
 		int port = 24736;
-		public ActorTester<TRunner, TStartup> CreateActor<TRunner, TStartup>(string name)
-			where TRunner : Common.HostRunner<TStartup>, new()
-			where TStartup : class
+		public ActorTester CreateActor(string name)
 		{
-			var actor = new ActorTester<TRunner, TStartup>(_Directory, name, port);
+			var actor = new ActorTester(_Directory, name, port);
 			actors.Add(actor);
-			leases.Add(actor);
 			port++;
 			return actor;
 		}

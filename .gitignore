@@ -192,3 +192,4 @@ project.lock.json
 /dotnet-tpl35/
 /dotnet-tpl35
 /tests/Lightning.Tests/BenchmarkDotNet.Artifacts/results
+/tests/Lightning.Tests/docker-compose.yml

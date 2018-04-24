@@ -10,27 +10,24 @@ using System.Text;
 
 namespace Common
 {
-	public abstract class DefaultConfigurationBase : StandardConfiguration.DefaultConfiguration
+	public class DefaultConfigurationBase : StandardConfiguration.DefaultConfiguration
 	{
-		public abstract string Actor
+		public string Actor
 		{
 			get;
+			set;
 		}
-		public abstract int DefaultPort
+		public int DefaultPort
 		{
 			get;
-		}
-		public abstract string Description
-		{
-			get;
-		}
+		} = 0; // unused
 		public override string EnvironmentVariablePrefix => $"LIGHTNINGBENCH_{Actor.ToUpperInvariant()}_";
 
 		protected override CommandLineApplication CreateCommandLineApplicationCore()
 		{
 			CommandLineApplication app = new CommandLineApplication(true)
 			{
-				FullName = $"{Actor}\r\n{Description}.",
+				FullName = $"{Actor}",
 				Name = Actor
 			};
 			app.HelpOption("-? | -h | --help");
