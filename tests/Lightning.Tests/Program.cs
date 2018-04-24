@@ -21,7 +21,7 @@ namespace Lightning.Tests
 			}
 			else if(args[0] == "alice-pays-bob")
 			{
-				var o = new AlicePayBob();
+				var o = new AlicePaysBob();
 				try
 				{
 					o.Setup();
@@ -34,7 +34,7 @@ namespace Lightning.Tests
 			}
 			else if(args[0] == "bench-alice-pays-bob")
 			{
-				BenchmarkRunner.Run<AlicePayBob>(new AllowNonOptimized());
+				BenchmarkRunner.Run<AlicePaysBob>(new AllowNonOptimized());
 			}
 
 			if(args[0].StartsWith("generate-alice-pays-bob-via-carol"))
@@ -43,7 +43,7 @@ namespace Lightning.Tests
 			}
 			else if(args[0] == "alice-pays-bob-via-carol")
 			{
-				var o = new AlicePayBobViaCarol();
+				var o = new AlicePaysBobViaCarol();
 				try
 				{
 					o.Setup();
@@ -57,7 +57,34 @@ namespace Lightning.Tests
 			}
 			else if(args[0] == "bench-alice-pays-bob-via-carol")
 			{
-				BenchmarkRunner.Run<AlicePayBobViaCarol>(new AllowNonOptimized());
+				BenchmarkRunner.Run<AlicePaysBobViaCarol>(new AllowNonOptimized());
+			}
+
+			if(args[0].StartsWith("generate-alices-pay-bob"))
+			{
+				var actors = Enumerable.Range(0, AlicesPayBob.AliceCount)
+					.Select(a => "Alice" + a)
+					.ToList();
+				actors.Add("Bob");
+				Generate(actors.ToArray());
+			}
+			else if(args[0] == "alices-pay-bob")
+			{
+				var o = new AlicesPayBob();
+				try
+				{
+					o.Setup();
+					o.RunAlicesPayBob().GetAwaiter().GetResult();
+					o.Cleanup();
+				}
+				finally
+				{
+					o.Cleanup();
+				}
+			}
+			else if(args[0] == "bench-alices-pay-bob")
+			{
+				BenchmarkRunner.Run<AlicesPayBob>(new AllowNonOptimized());
 			}
 		}
 
