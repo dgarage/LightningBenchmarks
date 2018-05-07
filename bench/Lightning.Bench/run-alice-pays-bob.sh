@@ -1,5 +1,6 @@
 #!/bin/bash
 
+rm -rf "BenchmarkDotNet.Artifacts"
 docker-compose down --v --remove-orphans
 dotnet build -c Release
 dotnet run -c Release --no-build -- "generate-alice-pays-bob"
