@@ -2,7 +2,7 @@
   "profiles": {
     "Lightning.Tests": {
       "commandName": "Project",
-      "commandLineArgs": "alices-pay-bob"
+      "commandLineArgs": "alice-pays-bob"
     }
   }
 }

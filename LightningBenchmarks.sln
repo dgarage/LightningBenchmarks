@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "src\Common\Common
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bench", "bench", "{CF2E771D-0F8E-4728-8C4F-F315A20418CF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightning.Bench", "tests\Lightning.Tests\Lightning.Bench.csproj", "{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightning.Bench", "bench\Lightning.Bench\Lightning.Bench.csproj", "{0E8FA6A1-6F7A-4D88-B9A8-5285E971218E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

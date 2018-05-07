@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using BenchmarkDotNet.Jobs;
+using BenchmarkDotNet.Exporters;
+using BenchmarkDotNet.Exporters.Csv;
 
 namespace Lightning.Tests
 {
@@ -75,7 +77,6 @@ namespace Lightning.Tests
 				{
 					o.Setup();
 					o.RunAlicesPayBob().GetAwaiter().GetResult();
-					o.Cleanup();
 				}
 				finally
 				{
@@ -97,6 +98,8 @@ namespace Lightning.Tests
 				Add(DefaultConfig.Instance.GetLoggers().ToArray()); // manual config has no loggers by default
 				Add(DefaultConfig.Instance.GetExporters().ToArray()); // manual config has no exporters by default
 				Add(DefaultConfig.Instance.GetColumnProviders().ToArray()); // manual config has no columns by default
+				Add(CsvMeasurementsExporter.Default);
+				Add(RPlotExporter.Default);
 
 				var job = new Job();
 				job.Run.TargetCount = 5;

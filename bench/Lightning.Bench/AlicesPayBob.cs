@@ -1,4 +1,5 @@
 ﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes.Exporters;
 using Common.CLightning;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace Lightning.Tests
 {
 	public class AlicesPayBob
 	{
-		public const int AliceCount = 15;
+		public const int AliceCount = 5;
 		Tester Tester;
 		ActorTester[] Alices = new ActorTester[AliceCount];
 		ActorTester Bob;
