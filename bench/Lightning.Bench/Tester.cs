@@ -39,7 +39,8 @@ namespace Lightning.Tests
 		{
 			EnsureCreated(_Directory);
 
-			cmd.Run("docker-compose down --v --remove-orphans");
+			if(File.Exists(Path.Combine(cmd.WorkingDirectory, "docker-compose.yml")))
+				cmd.Run("docker-compose down --v --remove-orphans");
 			cmd.Run("docker kill $(docker ps -f 'name = lightningbench_ *' -q)");
 			Generate(actors.Select(a => a.P2PHost).ToArray());
 			cmd.AssertRun("docker-compose up -d dev");
@@ -212,6 +213,7 @@ namespace Lightning.Tests
 			foreach(var lease in leases)
 				lease.Dispose();
 			cmd.AssertRun("docker-compose down --v");
+			File.Delete(Path.Combine(cmd.WorkingDirectory, "docker-compose.yml"));
 		}
 	}
 }
