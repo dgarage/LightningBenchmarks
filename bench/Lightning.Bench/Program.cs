@@ -10,6 +10,7 @@ using System.Text;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Exporters.Csv;
+using Lightning.Bench;
 
 namespace Lightning.Tests
 {
@@ -32,7 +33,7 @@ namespace Lightning.Tests
 			}
 			else if(args[0] == "bench-alice-pays-bob")
 			{
-				BenchmarkRunner.Run<AlicePaysBob>(new AllowNonOptimized());
+				BenchmarkRunner.Run<AlicePaysBob>(new BenchmarkConfiguration());
 			}
 
 
@@ -51,7 +52,7 @@ namespace Lightning.Tests
 			}
 			else if(args[0] == "bench-alice-pays-bob-via-carol")
 			{
-				BenchmarkRunner.Run<AlicePaysBobViaCarol>(new AllowNonOptimized());
+				BenchmarkRunner.Run<AlicePaysBobViaCarol>(new BenchmarkConfiguration());
 			}
 
 
@@ -70,29 +71,8 @@ namespace Lightning.Tests
 			}
 			else if(args[0] == "bench-alices-pay-bob")
 			{
-				BenchmarkRunner.Run<AlicesPayBob>(new AllowNonOptimized());
+				BenchmarkRunner.Run<AlicesPayBob>(new BenchmarkConfiguration());
 			}
 		}
-
-		public class AllowNonOptimized : ManualConfig
-		{
-			public AllowNonOptimized()
-			{
-				Add(JitOptimizationsValidator.DontFailOnError); // ALLOW NON-OPTIMIZED DLLS
-
-				Add(DefaultConfig.Instance.GetLoggers().ToArray()); // manual config has no loggers by default
-				Add(DefaultConfig.Instance.GetExporters().ToArray()); // manual config has no exporters by default
-				Add(DefaultConfig.Instance.GetColumnProviders().ToArray()); // manual config has no columns by default
-				Add(CsvMeasurementsExporter.Default);
-				Add(RPlotExporter.Default);
-
-				var job = new Job();
-				job.Run.TargetCount = 5;
-				job.Run.LaunchCount = 1;
-				job.Run.WarmupCount = 0;
-				Add(job);
-			}
-		}
-
 	}
 }
