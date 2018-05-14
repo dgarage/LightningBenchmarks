@@ -16,8 +16,8 @@ using System.Threading.Tasks;
 
 namespace Common
 {
-    public class StartupDefault
-    {
+	public class StartupDefault
+	{
 		public static void ConfigureServices(IConfiguration conf, IServiceCollection services)
 		{
 			services.AddMvcCore()
@@ -39,13 +39,19 @@ namespace Common
 			var rpc = new CLightning.CLightningRPCClient(connectionString.ToUri(true), Network.RegTest);
 			services.AddSingleton(rpc);
 			services.AddSingleton<ILightningInvoiceClient>(rpc);
-			try
+
+			DateTimeOffset start = DateTimeOffset.UtcNow;
+			while(true)
 			{
-				rpc.GetInfoAsync().GetAwaiter().GetResult();
-			}
-			catch(Exception ex)
-			{
-				throw new ConfigException($"Lightning connection failed ({ex.Message})");
+				try
+				{
+					rpc.GetInfoAsync().GetAwaiter().GetResult();
+				}
+				catch(Exception ex)
+				{
+					if(DateTimeOffset.UtcNow - start > TimeSpan.FromSeconds(5))
+						throw new ConfigException($"Lightning connection failed ({ex.Message})");
+				}
 			}
 		}
 
