@@ -42,28 +42,10 @@ namespace Lightning.Tests
 			Tester.Dispose();
 		}
 
-		[Benchmark(Baseline = true)]
+		[Benchmark]
 		public async Task RunAlicePayBobViaCarol()
 		{
 			await RunAlicePayBobViaCarol(1);
-		}
-
-		[Benchmark]
-		public async Task RunAlicePayBobViaCarol5x()
-		{
-			await RunAlicePayBobViaCarol(5);
-		}
-
-		[Benchmark]
-		public async Task RunAlicePayBobViaCarol10x()
-		{
-			await RunAlicePayBobViaCarol(10);
-		}
-
-		[Benchmark]
-		public async Task RunAlicePayBobViaCarol15x()
-		{
-			await RunAlicePayBobViaCarol(15);
 		}
 
 		private Task RunAlicePayBobViaCarol(int concurrent)

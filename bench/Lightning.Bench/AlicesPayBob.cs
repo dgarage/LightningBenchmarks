@@ -40,30 +40,11 @@ namespace Lightning.Tests
 			await Alices[Alices.Length - 1].WaitRouteTo(Bob);
 		}
 
-		[Benchmark(Baseline = true)]
+		[Benchmark]
 		public async Task RunAlicesPayBob()
 		{
 			await RunAlicesPayBobCore(1);
 		}
-
-		[Benchmark]
-		public async Task RunAlicesPayBob5x()
-		{
-			await RunAlicesPayBobCore(5);
-		}
-
-		[Benchmark]
-		public async Task RunAlicesPayBob10x()
-		{
-			await RunAlicesPayBobCore(10);
-		}
-
-		[Benchmark]
-		public async Task RunAlicesPayBob15x()
-		{
-			await RunAlicesPayBobCore(15);
-		}
-
 		private Task RunAlicesPayBobCore(int aliceCounts)
 		{
 			return Task.WhenAll(Enumerable.Range(0, aliceCounts)

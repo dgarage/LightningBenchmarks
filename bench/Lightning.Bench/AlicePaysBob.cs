@@ -34,28 +34,10 @@ namespace Lightning.Tests
 			Tester.Dispose();
 		}
 
-		[Benchmark(Baseline = true)]
+		[Benchmark]
 		public async Task RunAlicePayBob()
 		{
 			await RunAlicePayBobCore(1);
-		}
-
-		//[Benchmark]
-		public async Task RunAlicePayBob5x()
-		{
-			await RunAlicePayBobCore(5);
-		}
-
-		//[Benchmark]
-		public async Task RunAlicePayBob10x()
-		{
-			await RunAlicePayBobCore(10);
-		}
-
-		//[Benchmark]
-		public async Task RunAlicePayBob15x()
-		{
-			await RunAlicePayBobCore(15);
 		}
 
 		private Task RunAlicePayBobCore(int concurrent)
@@ -66,13 +48,6 @@ namespace Lightning.Tests
 					var invoice = await Bob.RPC.CreateInvoice(LightMoney.Satoshis(100));
 					await Alice.RPC.SendAsync(invoice.BOLT11);
 				}));
-		}
-
-
-		//[Benchmark]
-		public async Task RunCreateInvoice()
-		{
-			await Bob.RPC.CreateInvoice(LightMoney.Satoshis(100));
 		}
 	}
 }
