@@ -46,6 +46,7 @@ namespace Common
 				try
 				{
 					rpc.GetInfoAsync().GetAwaiter().GetResult();
+					break;
 				}
 				catch(Exception ex)
 				{

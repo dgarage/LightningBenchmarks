@@ -43,7 +43,6 @@ namespace Lightning.Tests
 				{
 					o.Setup();
 					o.RunAlicePayBobViaCarol().GetAwaiter().GetResult();
-					o.Cleanup();
 				}
 				finally
 				{
