@@ -38,15 +38,9 @@ namespace DockerGenerator
 		}
 		public void Build()
 		{
-			Console.WriteLine($"Generating {GetFilePath()}");
 			var deserializer = new DeserializerBuilder().Build();
 			var serializer = new SerializerBuilder().Build();
-
-			Console.WriteLine($"With fragments:");
-			foreach(var fragment in Fragments)
-			{
-				Console.WriteLine($"\t{fragment}");
-			}
+			
 			var services = new List<KeyValuePair<YamlNode, YamlNode>>();
 			var volumes = new List<KeyValuePair<YamlNode, YamlNode>>();
 
@@ -71,8 +65,6 @@ namespace DockerGenerator
 			var result = serializer.Serialize(output);
 			var outputFile = GetFilePath();
 			File.WriteAllText(outputFile, result.Replace("''", ""));
-			Console.WriteLine($"Generated {outputFile}");
-			Console.WriteLine();
 		}
 
 		private KeyValuePair<YamlNode, YamlNode>[] Merge(List<KeyValuePair<YamlNode, YamlNode>> services)

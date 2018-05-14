@@ -4,6 +4,7 @@ using BenchmarkDotNet.Running;
 using Common.CLightning;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,19 +40,19 @@ namespace Lightning.Tests
 			await RunAlicePayBobCore(1);
 		}
 
-		[Benchmark]
+		//[Benchmark]
 		public async Task RunAlicePayBob5x()
 		{
 			await RunAlicePayBobCore(5);
 		}
 
-		[Benchmark]
+		//[Benchmark]
 		public async Task RunAlicePayBob10x()
 		{
 			await RunAlicePayBobCore(10);
 		}
 
-		[Benchmark]
+		//[Benchmark]
 		public async Task RunAlicePayBob15x()
 		{
 			await RunAlicePayBobCore(15);

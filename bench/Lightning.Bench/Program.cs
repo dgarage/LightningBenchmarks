@@ -17,11 +17,7 @@ namespace Lightning.Tests
 	{
 		public static void Main(string[] args)
 		{
-			if(args[0].StartsWith("generate-alice-pays-bob"))
-			{
-				Generate(new[] { "Alice", "Bob" });
-			}
-			else if(args[0] == "alice-pays-bob")
+			if(args[0] == "alice-pays-bob")
 			{
 				var o = new AlicePaysBob();
 				try
@@ -39,11 +35,8 @@ namespace Lightning.Tests
 				BenchmarkRunner.Run<AlicePaysBob>(new AllowNonOptimized());
 			}
 
-			if(args[0].StartsWith("generate-alice-pays-bob-via-carol"))
-			{
-				Generate(new[] { "Alice", "Bob", "Carol" });
-			}
-			else if(args[0] == "alice-pays-bob-via-carol")
+
+			if(args[0] == "alice-pays-bob-via-carol")
 			{
 				var o = new AlicePaysBobViaCarol();
 				try
@@ -62,15 +55,8 @@ namespace Lightning.Tests
 				BenchmarkRunner.Run<AlicePaysBobViaCarol>(new AllowNonOptimized());
 			}
 
-			if(args[0].StartsWith("generate-alices-pay-bob"))
-			{
-				var actors = Enumerable.Range(0, AlicesPayBob.AliceCount)
-					.Select(a => "Alice" + a)
-					.ToList();
-				actors.Add("Bob");
-				Generate(actors.ToArray());
-			}
-			else if(args[0] == "alices-pay-bob")
+
+			if(args[0] == "alices-pay-bob")
 			{
 				var o = new AlicesPayBob();
 				try
@@ -109,31 +95,5 @@ namespace Lightning.Tests
 			}
 		}
 
-		private static void Generate(string[] actors)
-		{
-			var fragments = FindLocation("docker-fragments");
-			var main = Path.Combine(fragments, "main-fragment.yml");
-			var actor = File.ReadAllText(Path.Combine(fragments, "actor-fragment.yml"));
-
-			var def = new DockerComposeDefinition("docker-compose.yml", new List<string>());
-			def.BuildOutput = Path.Combine(Directory.GetParent(fragments).FullName, "docker-compose.yml");
-			def.AddFragmentFile(main);
-			for(int i = 0; i < actors.Length; i++)
-			{
-				def.Fragments.Add(actor.Replace("actor0", actors[i])
-					 .Replace("24736", (24736 + i).ToString()));
-			}
-			def.Build();
-		}
-
-		private static string FindLocation(string path)
-		{
-			while(true)
-			{
-				if(Directory.Exists(path))
-					return path;
-				path = Path.Combine("..", path);
-			}
-		}
 	}
 }

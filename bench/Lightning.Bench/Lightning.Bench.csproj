@@ -15,4 +15,10 @@
 		<ProjectReference Include="..\..\src\Common\Common.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<Content Include="docker-fragments\*.yml">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
 </Project>

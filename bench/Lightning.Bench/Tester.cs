@@ -8,6 +8,10 @@ using System.Threading.Tasks;
 using NBitcoin;
 using Common.CLightning;
 using NBitcoin.RPC;
+using System.Diagnostics;
+using DockerGenerator;
+using System.Runtime.InteropServices;
+using Lightning.Bench;
 
 namespace Lightning.Tests
 {
@@ -19,9 +23,13 @@ namespace Lightning.Tests
 		}
 
 		string _Directory;
+		CommandLineBase cmd;
 		public Tester(string scope)
 		{
 			_Directory = scope;
+			cmd = CommandLineFactory.CreateShell();
+			cmd.WorkingDirectory = Path.Combine(Directory.GetCurrentDirectory(), "lightningbench");
+			EnsureCreated(cmd.WorkingDirectory);
 		}
 
 		List<IDisposable> leases = new List<IDisposable>();
@@ -29,16 +37,56 @@ namespace Lightning.Tests
 
 		public void Start()
 		{
-			if(Directory.Exists(_Directory))
-				Utils.DeleteDirectory(_Directory);
-			if(!Directory.Exists(_Directory))
-				Directory.CreateDirectory(_Directory);
+			EnsureCreated(_Directory);
+
+			cmd.Run("docker-compose down --v --remove-orphans");
+			cmd.Run("docker kill $(docker ps -f 'name = lightningbench_ *' -q)");
+			Generate(actors.Select(a => a.P2PHost).ToArray());
+			cmd.AssertRun("docker-compose up -d dev");
 
 			foreach(var actor in actors)
 			{
 				actor.Start();
 			}
 		}
+
+		private void EnsureCreated(string dir)
+		{
+			if(Directory.Exists(dir))
+				Utils.DeleteDirectory(dir);
+			if(!Directory.Exists(dir))
+				Directory.CreateDirectory(dir);
+		}
+
+
+
+		private void Generate(string[] actors)
+		{
+			var fragments = FindLocation("docker-fragments");
+			var main = Path.Combine(fragments, "main-fragment.yml");
+			var actor = File.ReadAllText(Path.Combine(fragments, "actor-fragment.yml"));
+
+			var def = new DockerComposeDefinition("docker-compose.yml", new List<string>());
+			def.BuildOutput = Path.Combine(cmd.WorkingDirectory, "docker-compose.yml");
+			def.AddFragmentFile(main);
+			for(int i = 0; i < actors.Length; i++)
+			{
+				def.Fragments.Add(actor.Replace("actor0", actors[i])
+					 .Replace("24736", (24736 + i).ToString()));
+			}
+			def.Build();
+		}
+
+		private static string FindLocation(string path)
+		{
+			while(true)
+			{
+				if(Directory.Exists(path))
+					return path;
+				path = Path.Combine("..", path);
+			}
+		}
+
 
 		public async Task CreateChannel(ActorTester from, ActorTester to)
 		{
@@ -163,6 +211,7 @@ namespace Lightning.Tests
 		{
 			foreach(var lease in leases)
 				lease.Dispose();
+			cmd.AssertRun("docker-compose down --v");
 		}
 	}
 }

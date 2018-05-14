@@ -4,14 +4,15 @@ services:
     links:
       - actor0
   actor0:
-    image: nicolasdorier/clightning:0.0.0.12-dev
+    image: nicolasdorier/clightning:0.0.0.14-dev
     environment: 
       EXPOSE_TCP: "true"
       LIGHTNINGD_OPT: |
         bitcoin-datadir=/etc/bitcoin
         bitcoin-rpcconnect=miner
         network=regtest
-        ipaddr=actor0
+        bind-addr=0.0.0.0
+        announce-addr=actor0
         log-level=debug
         dev-broadcast-interval=1000
     ports:
