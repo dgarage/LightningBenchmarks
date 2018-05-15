@@ -36,7 +36,11 @@ namespace Lightning.Bench
 		{
 			get; set;
 		}
-		public abstract CommandLineResult Run(string cmd);
+		public CommandLineResult Run(string cmd)
+		{
+			return Run(cmd, true);
+		}
+		public abstract CommandLineResult Run(string cmd, bool ignoreError);
 		protected CommandLineResult Run(ProcessStartInfo processInfo)
 		{
 			processInfo.WorkingDirectory = WorkingDirectory;
@@ -47,9 +51,18 @@ namespace Lightning.Bench
 			{
 				StartInfo = processInfo
 			};
-
+			Console.WriteLine($"// Running {processInfo.FileName} {processInfo.Arguments}");
 			StringBuilder builder = new StringBuilder();
-			process.OutputDataReceived += (s, r) => builder.AppendLine(r?.Data ?? string.Empty);
+			process.OutputDataReceived += (s, r) => 
+			{
+				Console.WriteLine("// " + r?.Data);
+				builder.AppendLine(r?.Data ?? string.Empty);
+			};
+			process.ErrorDataReceived += (s, r) =>
+			{
+				Console.WriteLine("// " + r?.Data);
+				builder.AppendLine(r?.Data ?? string.Empty);
+			};
 			process.Start();
 			process.BeginOutputReadLine();
 			process.WaitForExit(30000);
@@ -59,7 +72,7 @@ namespace Lightning.Bench
 		}
 		public void AssertRun(string cmd)
 		{
-			var result = Run(cmd);
+			var result = Run(cmd, false);
 			if(result.ExitCode != 0)
 			{
 				throw new CommandLineException() { ExitCode = result.ExitCode, Output = result.Output };
@@ -84,8 +97,10 @@ namespace Lightning.Bench
 
 	public class BashCommandLine : CommandLineBase
 	{
-		public override CommandLineResult Run(string cmd)
+		public override CommandLineResult Run(string cmd, bool ignoreError)
 		{
+			if(ignoreError)
+				cmd += " || true";
 			var escapedArgs = cmd.Replace("\"", "\\\"");
 			return this.Run(new ProcessStartInfo
 			{
@@ -97,8 +112,10 @@ namespace Lightning.Bench
 
 	public class PowershellCommandLine : CommandLineBase
 	{
-		public override CommandLineResult Run(string cmd)
+		public override CommandLineResult Run(string cmd, bool ignoreError)
 		{
+			if(ignoreError)
+				cmd += "; $LastExitCode = 0";
 			var escapedArgs = cmd.Replace("\"", "\\\"");
 			return this.Run(new ProcessStartInfo
 			{
