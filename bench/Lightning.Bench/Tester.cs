@@ -216,7 +216,7 @@ namespace Lightning.Tests
 			foreach(var lease in leases)
 				lease.Dispose();
 			Console.WriteLine("// Tearing down docker-compose...");
-			cmd.AssertRun("docker-compose down --v");
+			cmd.Run("docker-compose down --v");
 			Console.WriteLine("// Docker-compose teared down ");
 			File.Delete(Path.Combine(cmd.WorkingDirectory, "docker-compose.yml"));
 		}
