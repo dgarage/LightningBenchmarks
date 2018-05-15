@@ -31,12 +31,32 @@ namespace Lightning.Bench
 		public override string Message => $"Exit code {ExitCode}: {Output}";
 	}
 	public abstract class CommandLineBase
-    {
+	{
 		public string WorkingDirectory
 		{
 			get; set;
 		}
 		public abstract CommandLineResult Run(string cmd);
+		protected CommandLineResult Run(ProcessStartInfo processInfo)
+		{
+			processInfo.WorkingDirectory = WorkingDirectory;
+			processInfo.RedirectStandardOutput = true;
+			processInfo.UseShellExecute = false;
+			processInfo.CreateNoWindow = true;
+			var process = new Process()
+			{
+				StartInfo = processInfo
+			};
+
+			StringBuilder builder = new StringBuilder();
+			process.OutputDataReceived += (s, r) => builder.AppendLine(r?.Data ?? string.Empty);
+			process.Start();
+			process.BeginOutputReadLine();
+			process.WaitForExit(30000);
+			if(!process.HasExited)
+				process.Kill();
+			return new CommandLineResult() { ExitCode = process.ExitCode, Output = builder.ToString() };
+		}
 		public void AssertRun(string cmd)
 		{
 			var result = Run(cmd);
@@ -67,22 +87,11 @@ namespace Lightning.Bench
 		public override CommandLineResult Run(string cmd)
 		{
 			var escapedArgs = cmd.Replace("\"", "\\\"");
-			var process = new Process()
+			return this.Run(new ProcessStartInfo
 			{
-				StartInfo = new ProcessStartInfo
-				{
-					FileName = "/bin/bash",
-					Arguments = $"-c \"{escapedArgs}\"",
-					WorkingDirectory = WorkingDirectory,
-					RedirectStandardOutput = true,
-					UseShellExecute = false,
-					CreateNoWindow = true,
-				}
-			};
-			process.Start();
-			string result = process.StandardOutput.ReadToEnd();
-			process.WaitForExit();
-			return new CommandLineResult() { ExitCode = process.ExitCode, Output = result };
+				FileName = "/bin/bash",
+				Arguments = $"-c \"{escapedArgs}\""
+			});
 		}
 	}
 
@@ -91,22 +100,11 @@ namespace Lightning.Bench
 		public override CommandLineResult Run(string cmd)
 		{
 			var escapedArgs = cmd.Replace("\"", "\\\"");
-			var process = new Process()
+			return this.Run(new ProcessStartInfo
 			{
-				StartInfo = new ProcessStartInfo
-				{
-					FileName = "powershell.exe",
-					Arguments = $"-Command \"{escapedArgs}\"",
-					WorkingDirectory = WorkingDirectory,
-					RedirectStandardOutput = true,
-					UseShellExecute = false,
-					CreateNoWindow = true,
-				}
-			};
-			process.Start();
-			string result = process.StandardOutput.ReadToEnd();
-			process.WaitForExit();
-			return new CommandLineResult() { ExitCode = process.ExitCode, Output = result };
+				FileName = "powershell.exe",
+				Arguments = $"-Command \"{escapedArgs}\""
+			});
 		}
 	}
 }

@@ -77,6 +77,7 @@ namespace Lightning.Tests
 					 .Replace("24736", (24736 + i).ToString()));
 			}
 			def.Build();
+			Console.WriteLine($"// Generated docker-compose: {def.BuildOutput}");
 		}
 
 		private static string FindLocation(string path)
@@ -137,6 +138,7 @@ namespace Lightning.Tests
 							await WaitLNSynched(miner, to, from);
 							break;
 						case "CHANNELD_NORMAL":
+							Console.WriteLine($"// Channel established: {from} => {to}");
 							return;
 						default:
 							throw new NotSupportedException(channel?.State ?? "");
@@ -213,7 +215,9 @@ namespace Lightning.Tests
 		{
 			foreach(var lease in leases)
 				lease.Dispose();
+			Console.WriteLine("// Tearing down docker-compose...");
 			cmd.AssertRun("docker-compose down --v");
+			Console.WriteLine("// Docker-compose teared down ");
 			File.Delete(Path.Combine(cmd.WorkingDirectory, "docker-compose.yml"));
 		}
 	}
