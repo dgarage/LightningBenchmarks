@@ -13,7 +13,11 @@ namespace Lightning.Tests
 {
 	public class Benchmarks
 	{
-		public const int AliceCount = 5;
+		//[Params(1, 3, 5)]
+		public int AliceCount
+		{
+			get; set;
+		} = 5;
 
 		[Params(1, 3, 5, 7)]
 		public int Concurrency
@@ -32,7 +36,7 @@ namespace Lightning.Tests
 		ActorTester Alice;
 		ActorTester Bob;
 		ActorTester[] Carols;
-		ActorTester[] Alices = new ActorTester[AliceCount];
+		ActorTester[] Alices;
 
 
 		#region AlicePayBob
@@ -98,6 +102,7 @@ namespace Lightning.Tests
 		{
 			Tester = Tester.Create();
 			Bob = Tester.CreateActor("Bob");
+			Alices = new ActorTester[AliceCount];
 			for(int i = 0; i < Alices.Length; i++)
 			{
 				Alices[i] = Tester.CreateActor("Alice" + i);
