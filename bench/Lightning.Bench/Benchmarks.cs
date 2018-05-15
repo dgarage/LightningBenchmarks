@@ -21,10 +21,17 @@ namespace Lightning.Tests
 			get; set;
 		} = 1;
 
+
+		//[Params(1, 3, 5)]
+		public int CarolsCount
+		{
+			get; set;
+		} = 1;
+
 		Tester Tester;
 		ActorTester Alice;
 		ActorTester Bob;
-		ActorTester Carol;
+		ActorTester[] Carols;
 		ActorTester[] Alices = new ActorTester[AliceCount];
 
 
@@ -57,12 +64,20 @@ namespace Lightning.Tests
 			Tester = Tester.Create();
 			Alice = Tester.CreateActor("Alice");
 			Bob = Tester.CreateActor("Bob");
-			Carol = Tester.CreateActor("Carol");
+			Carols = Enumerable.Range(0, CarolsCount).Select(i=> Tester.CreateActor($"Carol{i}")).ToArray();
 			Tester.Start();
 
-			Tester.ConnectPeers(Alice, Bob, Carol).GetAwaiter().GetResult();
-			Tester.CreateChannel(Alice, Carol).GetAwaiter().GetResult();
-			Tester.CreateChannel(Carol, Bob).GetAwaiter().GetResult();
+
+			Tester.ConnectPeers(Carols.Concat(new[] { Alice, Bob }).ToArray()).GetAwaiter().GetResult();
+
+			ActorTester previousCarol = null;
+
+			foreach(var carol in Carols)
+			{
+				Tester.CreateChannel(previousCarol ?? Alice, carol).GetAwaiter().GetResult();
+				previousCarol = carol;
+			}
+			Tester.CreateChannel(previousCarol, Bob).GetAwaiter().GetResult();
 			Alice.WaitRouteTo(Bob).GetAwaiter().GetResult();
 		}
 		//[Benchmark]
