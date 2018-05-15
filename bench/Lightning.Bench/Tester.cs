@@ -42,6 +42,7 @@ namespace Lightning.Tests
 			if(File.Exists(Path.Combine(cmd.WorkingDirectory, "docker-compose.yml")))
 				cmd.Run("docker-compose down --v --remove-orphans");
 			cmd.Run("docker kill $(docker ps -f 'name = lightningbench_ *' -q)");
+			cmd.Run("docker rm $(docker ps -a -f 'name = lightningbench_ *' -q)");
 			GenerateDockerCompose(actors.Select(a => a.P2PHost).ToArray());
 			cmd.Run("docker-compose down --v --remove-orphans"); // Makes really sure we start clean
 			cmd.AssertRun("docker-compose up -d dev");
