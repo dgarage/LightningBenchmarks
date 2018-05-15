@@ -70,6 +70,7 @@ namespace Lightning.Tests
 				BitcoinRPC.Generate(blockToMine);
 				blockToMine = 1;
 			}
+			Console.WriteLine($"// Route from {this.P2PHost} to {destination.P2PHost} can now be used");
 		}
 
 

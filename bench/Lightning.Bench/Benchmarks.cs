@@ -14,12 +14,13 @@ namespace Lightning.Tests
 	public class Benchmarks
 	{
 		public const int AliceCount = 5;
-		
-		[Params(1,3,5,7)]
+
+		[Params(1, 3, 5, 7)]
 		public int Concurrency
 		{
 			get; set;
-		}
+		} = 1;
+
 		Tester Tester;
 		ActorTester Alice;
 		ActorTester Bob;
