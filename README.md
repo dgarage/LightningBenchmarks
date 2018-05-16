@@ -10,6 +10,8 @@ By reading the [BenchmarkDotnet](https://benchmarkdotnet.org/) documentation, yo
 It currently only support `c-lightning` on some predefined scenaris presented below.
 This document explains the structure of this project then present a small analysis on the currently benchmarked scenaris so you can understand how to tweak it by yourself.
 
+Those tests relies on [this clightning commit](https://github.com/NicolasDorier/lightning/commit/1125682cebd906632423a3cdaa4a125debec448a) on [Alpine environment](https://github.com/ElementsProject/lightning/pull/1318).
+
 ## Design rationale
 
 We are leveraging `docker` and `docker-compose` to create a reliable and reproducible environment on any OS supporting `docker`.
@@ -25,12 +27,12 @@ Pre-requisite depends only on docker and .NET Core
 
 * Docker
 * Docker-Compose
-* .NET Core SDK 2.0 as specified by [Microsoft website](https://www.microsoft.com/net/download).
+* .NET Core SDK 2.0 as specified by [Microsoft website](https://www.microsoft.com/net/download). (2.1 should also work fine)
 
 To generate plots successfully you need additionally:
 
 * [R 3.5.0](https://www.r-project.org/) to generate plots.
-* Having `R_HOME` set up to the base R directory (`C:\Program Files\R\R-3.5.0` on Windows)
+* Make sure `RScript` is in your `PATH`, or set set `R_HOME` set to the base R directory (`C:\Program Files\R\R-3.5.0` on Windows)
 
 If you want to edit code, we advise you to use Visual Studio 2017 on Windows or Visual Studio Code elsewhere.
 
@@ -295,9 +297,11 @@ This result is particulary interesting when we compare to our first benchmark `A
 
 ![Boxplot](images/Benchmarks0-RunAlicePaysBob-density.png)
 
-While having 7 alices paying at the same time is way faster than having 1 alices making 7 payments at the same time.
+Having 7 Alices paying at the same time is faster than having 1 Alice making 7 payments at the same time.
 
-In order to know if the linear problem in `Alice pays Bob` case is caused by Bob making too many invoices or Alice making too payments, we will run 100 iterations of 3 Alices paying Bob.
+In the `Alice pays Bob` scenario, we discovered that generating an invoice and making a payment was increasing linearly. 
+
+Let's compare by having 3 Alices making the same number of payments to Bob.
 
 ```diff
 diff --git a/bench/Lightning.Bench/BenchmarkConfiguration.cs b/bench/Lightning.Bench/BenchmarkConfiguration.cs
@@ -331,14 +335,21 @@ index 2060210..ffc7a6f 100644
 
 ![facet](images/Benchmarks4-RunAlicesPayBob-facetTimeline.png)
 
-First thing to note is that compared to `Alice pays Bob` case, there is, from the beginning a difference of 100ms from the beginning, which might indicated some lock contention.
+We can notice that in `Alice pays Bob` case, the line has an intercept of `+100ms` compared to `Alices pay Bob`, which might indicated some lock contention.
 
+The slope is 2495 for `Alice pays Bob` and 1120.75 for `Alices pay Bob`.
+This shows that the cause for the slowdown is mainly related to the number of payments.
 
-While there is some improvement, the slope is not going up three times lower. This indicate some performance issues on Bob level.
+## Conclusion
+
+This project is about having an easy way to setup a reproductible environment for running and comparing benchmarks.
+
+While the analysis of the three previous scenaris highlighted some performance issues and numbers, those are only an example among others.
 
 ## Remaining work to do
 
 * Support for [Eclair](https://github.com/ACINQ/eclair) and [LND](https://github.com/lightningnetwork/lnd).
+* Generating source code level profiling
 * Being able to run different node version side by side to compare the performance on same plots. (This can be done by creating alternative `actor-fragment.yml`)
 
 ## License
