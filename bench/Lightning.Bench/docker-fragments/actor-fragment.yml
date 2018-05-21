@@ -4,7 +4,7 @@ services:
     links:
       - actor0
   actor0:
-    image: nicolasdorier/clightning:0.0.0.16-dev
+    image: nicolasdorier/clightning:0.0.0.18-bench
     privileged: true
     environment: 
       EXPOSE_TCP: "true"
