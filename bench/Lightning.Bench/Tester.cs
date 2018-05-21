@@ -29,6 +29,7 @@ namespace Lightning.Tests
 			_Directory = scope;
 			cmd = CommandLineFactory.CreateShell();
 			cmd.WorkingDirectory = Path.Combine(Directory.GetCurrentDirectory(), "lightningbench");
+			Console.WriteLine($"// WORKING DIRECTORY: {cmd.WorkingDirectory}");
 			EnsureCreated(cmd.WorkingDirectory);
 		}
 
@@ -46,7 +47,6 @@ namespace Lightning.Tests
 			GenerateDockerCompose(actors.Select(a => a.P2PHost).ToArray());
 			cmd.Run("docker-compose down --v --remove-orphans"); // Makes really sure we start clean
 			cmd.AssertRun("docker-compose up -d dev");
-
 			foreach(var actor in actors)
 			{
 				actor.Start();

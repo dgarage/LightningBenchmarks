@@ -97,11 +97,15 @@ namespace Lightning.Bench
 
 	public class BashCommandLine : CommandLineBase
 	{
+		public static string EscapeBash(string command)
+		{
+			return command.Replace("\"", "\\\"");
+		}
 		public override CommandLineResult Run(string cmd, bool ignoreError)
 		{
 			if(ignoreError)
 				cmd += " || true";
-			var escapedArgs = cmd.Replace("\"", "\\\"");
+			var escapedArgs = EscapeBash(cmd);
 			return this.Run(new ProcessStartInfo
 			{
 				FileName = "/bin/bash",
@@ -112,11 +116,16 @@ namespace Lightning.Bench
 
 	public class PowershellCommandLine : CommandLineBase
 	{
+		public static string EscapePowershell(string command)
+		{
+			return command
+						.Replace("\"", "\\\"");
+		}
 		public override CommandLineResult Run(string cmd, bool ignoreError)
 		{
+			var escapedArgs = EscapePowershell(cmd);
 			if(ignoreError)
-				cmd += "; $LastExitCode = 0";
-			var escapedArgs = cmd.Replace("\"", "\\\"");
+				escapedArgs += "; $LastExitCode = 0";
 			return this.Run(new ProcessStartInfo
 			{
 				FileName = "powershell.exe",
