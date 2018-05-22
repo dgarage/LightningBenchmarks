@@ -41,7 +41,12 @@ namespace Common.CLightning
             Network = network;
         }
 
-        public Task<GetInfoResponse> GetInfoAsync(CancellationToken cancellation = default(CancellationToken))
+		public bool ReuseSocket
+		{
+			get; set;
+		}
+
+		public Task<GetInfoResponse> GetInfoAsync(CancellationToken cancellation = default(CancellationToken))
         {
             return SendCommandAsync<GetInfoResponse>("getinfo", cancellation: cancellation);
         }
@@ -91,13 +96,17 @@ namespace Common.CLightning
             return SendCommandAsync<object>("connect", new[] { $"{nodeInfo.NodeId}@{nodeInfo.Host}:{nodeInfo.Port}" }, true);
         }
 
-        static Encoding UTF8 = new UTF8Encoding(false);
+		Socket _Socket;
+		static Encoding UTF8 = new UTF8Encoding(false);
         private async Task<T> SendCommandAsync<T>(string command, object[] parameters = null, bool noReturn = false, bool isArray = false, CancellationToken cancellation = default(CancellationToken))
         {
             parameters = parameters ?? Array.Empty<string>();
-            using (Socket socket = await Connect())
+			Socket socket = ReuseSocket && _Socket != null ? _Socket : await Connect();
+			if(ReuseSocket)
+				_Socket = socket;
+			using (ReuseSocket ? null : socket)
             {
-                using (var networkStream = new NetworkStream(socket))
+                using (var networkStream = new NetworkStream(socket, !ReuseSocket))
                 {
                     using (var textWriter = new StreamWriter(networkStream, UTF8, 1024 * 10, true))
                     {

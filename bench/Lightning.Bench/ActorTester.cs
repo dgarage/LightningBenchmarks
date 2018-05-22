@@ -3,6 +3,7 @@ using Common.CLightning;
 using Microsoft.Extensions.DependencyInjection;
 using NBitcoin.RPC;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -104,6 +105,18 @@ namespace Lightning.Tests
 		public RPCClient BitcoinRPC => ServiceProvider.GetRequiredService<RPCClient>();
 
 		public CLightningRPCClient RPC => ServiceProvider.GetRequiredService<CLightningRPCClient>();
+
+		ConcurrentDictionary<int, CLightningRPCClient> _ReuseClients = new ConcurrentDictionary<int, CLightningRPCClient>();
+		public CLightningRPCClient GetRPC(int i)
+		{
+			if(!_ReuseClients.TryGetValue(i, out var client))
+			{
+				client = new CLightningRPCClient(RPC.Address, RPC.Network);
+				client.ReuseSocket = true;
+				_ReuseClients.TryAdd(i, client);
+			}
+			return client;
+		}
 
 		public override string ToString()
 		{
