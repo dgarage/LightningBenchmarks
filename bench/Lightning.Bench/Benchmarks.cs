@@ -55,8 +55,8 @@ namespace Lightning.Tests
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
 				.Select(async _ =>
 				{
-					var invoice = await Bob.RPC.CreateInvoice(LightMoney.Satoshis(100));
-					await Alice.RPC.SendAsync(invoice.BOLT11);
+					var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(100));
+					await Alice.GetRPC(_).SendAsync(invoice.BOLT11);
 				}));
 		}
 		#endregion
@@ -90,8 +90,8 @@ namespace Lightning.Tests
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
 				.Select(async _ =>
 				{
-					var invoice = await Bob.RPC.CreateInvoice(LightMoney.Satoshis(1000));
-					await Alice.RPC.SendAsync(invoice.BOLT11);
+					var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(1000));
+					await Alice.GetRPC(_).SendAsync(invoice.BOLT11);
 				}));
 		}
 		#endregion
@@ -121,11 +121,11 @@ namespace Lightning.Tests
 		public async Task RunAlicesPayBob()
 		{
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
-				.Select(async i =>
+				.Select(async _ =>
 				{
-					var alice = Alices[i];
-					var invoice = await Bob.RPC.CreateInvoice(LightMoney.Satoshis(1000));
-					await alice.RPC.SendAsync(invoice.BOLT11);
+					var alice = Alices[_];
+					var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(1000));
+					await alice.GetRPC(_).SendAsync(invoice.BOLT11);
 				}));
 		}
 		#endregion
