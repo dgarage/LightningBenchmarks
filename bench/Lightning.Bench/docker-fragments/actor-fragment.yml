@@ -14,7 +14,7 @@ services:
         network=regtest
         bind-addr=0.0.0.0
         announce-addr=actor0
-        log-level=debug
+        log-level=broken
         dev-broadcast-interval=1000
     ports:
       - "24736:9835" # api port
