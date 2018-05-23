@@ -121,6 +121,7 @@ namespace Lightning.Tests
 		public async Task RunAlicesPayBob()
 		{
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
+				.SelectMany(_ => Enumerable.Range(0, AliceCount))
 				.Select(async _ =>
 				{
 					var alice = Alices[_];
