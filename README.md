@@ -10,7 +10,7 @@ By reading the [BenchmarkDotnet](https://benchmarkdotnet.org/) documentation, yo
 It currently only support `c-lightning` on some predefined scenaris presented below.
 This document explains the structure of this project then present a small analysis on the currently benchmarked scenaris so you can understand how to tweak it by yourself.
 
-Those tests relies on [this clightning commit](https://github.com/NicolasDorier/lightning/commit/1125682cebd906632423a3cdaa4a125debec448a) on [Alpine environment](https://github.com/ElementsProject/lightning/pull/1318).
+Those tests relies on [this clightning commit](https://github.com/NicolasDorier/lightning/commit/d9eba0e924538d41a9fbb016193633c9cb6de76b) on [Alpine environment](https://github.com/ElementsProject/lightning/pull/1318).
 
 ## Design rationale
 
@@ -18,8 +18,11 @@ We are leveraging `docker` and `docker-compose` to create a reliable and reprodu
 `docker-compose` provides a simple file format to describe what image of what program should run, and how those program connect together.
 By doing this, not only we eliminate human errors caused by not properly running and configuring software together, but we don't have to provide OS specific instructions to make use of this project.
 
-In the following section we will detail how this project is organized by following how to run an hypothetic scenario: How fast can run Alice can pays Bob.
-We will then explorer other benchmarks you can create.
+In the following section we will detail how this project is organized by following how to run the following hypothetic scenario and how we can analyze issues: 
+
+* How fast can run Alice can pays Bob.
+* How fast can Alice pays Bob through Carol.
+* How fast Alices can pays Bob.
 
 ## Pre-requisite
 
@@ -36,19 +39,19 @@ To generate plots successfully you need additionally:
 
 If you want to edit code, we advise you to use Visual Studio 2017 on Windows or Visual Studio Code elsewhere.
 
-## How to run
+## System overview
 
-First, in order to assess if your environment is properly setup:
+All benchmarks starts by running the `run` script.
 
 On Windows:
-```
+```powershell
 git clone git@github.com:dgarage/LightningBenchmarks.git
 cd LightningBenchmarks\bench\Lightning.Bench
 .\run.sh
 ```
 
 On Linux/Mac:
-```
+```bash
 git clone git@github.com:dgarage/LightningBenchmarks.git
 cd LightningBenchmarks/bench/Lightning.Bench
 ./run.sh
@@ -58,9 +61,7 @@ You can then see the artifacts in `bench/Lightning.Bench/BenchmarkDotNet.Artifac
 
 ![Artifacts](images/Artifacts.png)
 
-## System overview
-
-The following procedure happens when you run `run` script:
+The following happens when if you `run` script:
 
 1. `run` calls `dotnet run` which build and run the project
 2. The project starts `BenchmarkDotnet` based on the [configuration](bench/Lightning.Bench/BenchmarkConfiguration.cs).
@@ -72,6 +73,22 @@ The following procedure happens when you run `run` script:
 You can tweak `BenchmarkConfiguration` for your own analysis need, check the [documentation](https://benchmarkdotnet.org/index.htm).
 
 ![UML](images/UML.png)
+
+---
+NOTICE: We recompiled lightningd to activate compiler optimizations. Those optimizations are not part of the default docker image which is pulled by this project.
+
+This is optional, but if you want to turn on optimizations, you need to recompile the `clightning` image.
+
+```bash
+git clone https://github.com/NicolasDorier/lightning/tree/dockerfile
+
+# Be careful "0.0.0.19" might change, it should match what is inside bench/Lightning.Bench/docker-fragments/actor-fragment.yml
+docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:0.0.0.19-bench .
+```
+1. Clone [this repository](https://github.com/NicolasDorier/lightning/tree/dockerfile).
+2. 
+
+---
 
 ## Scenario: Alice pays Bob
 

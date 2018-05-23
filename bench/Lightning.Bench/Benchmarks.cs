@@ -19,7 +19,7 @@ namespace Lightning.Tests
 			get; set;
 		} = 5;
 
-		[Params(1, 3, 5, 7)]
+		[Params(1, 4, 7, 10)]
 		public int Concurrency
 		{
 			get; set;
