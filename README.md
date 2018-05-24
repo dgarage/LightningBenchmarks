@@ -507,15 +507,19 @@ Blockstream claimed to have benchmarked `500 transactions per seconds` at [conse
 
 Several factors might explain the differences:
 
-1. In Blockstream's benchmark, invoices are pregenerated, while in `AlicePaysBob` benchmark, the invoice is generated then paid immediately.
-2. In Blockstream's benchmark, invoices are paid as fast as possible. In our benchmark, invoices are paid by batch whose size is 7.
+1. In Blockstream's benchmark, invoices are pre-generated, only pure payment is benchmarked. In `AlicePaysBob` benchmark, the invoice is generated and sequentially paid.
+2. In Blockstream's benchmark, invoices are paid as fast as possible. In our benchmark, invoices are created then paid by batch of 7. The next batch run only when the previous is complete.
 3. In Blockstream's benchmark, the test is running on RAM Disk. In our benchmark, tests are run on SSD.
 4. In Blockstream's benchmark, tests are run on "bare metal". We are using docker and connecting to clightning via `socat`.
 5. Docker might limit CPU resources (even if we took care at configuring it correctly)
 6. Our machines specs might differ. (Ours is `Intel Core i7-6500U CPU 2.50GHz (Skylake), 1 CPU, 4 logical and 2 physical cores Frequency=2531249 Hz`)
 
+We also tried to run the same tests on a Virtual Machine hosted on Azure on a [D1v2 instance](https://docs.microsoft.com/en-us/azure/virtual-machines/windows/sizes-general#dv2-series). The performances were slower with similar flamegraphs.
+
 We will work toward replicating the performance claimed as much as possible.
 Although, the linear scaling issue and logging perf issues found during our benchmark are unlikely solved by having different hardware.
+
+The performance bottleneck we identified seems easily solvable. We will run again those once the raised issues have been solved.
 
 ## Conclusion
 
