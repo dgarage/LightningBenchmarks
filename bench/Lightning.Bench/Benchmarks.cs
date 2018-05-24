@@ -13,13 +13,13 @@ namespace Lightning.Tests
 {
 	public class Benchmarks
 	{
-		//[Params(1, 3, 5)]
+		[Params(4, 7, 10)]
 		public int AliceCount
 		{
 			get; set;
 		} = 5;
 
-		[Params(1, 4, 7, 10)]
+		//[Params(1, 4, 7, 10)]
 		public int Concurrency
 		{
 			get; set;
@@ -47,9 +47,9 @@ namespace Lightning.Tests
 			Alice = Tester.CreateActor("Alice");
 			Bob = Tester.CreateActor("Bob");
 			Tester.Start();
-			Tester.CreateChannel(Alice, Bob).GetAwaiter().GetResult();
+			Tester.CreateChannels(new[] { Alice }, new[] { Bob }).GetAwaiter().GetResult();
 		}
-		[Benchmark]
+		//[Benchmark]
 		public async Task RunAlicePaysBob()
 		{
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
@@ -71,17 +71,12 @@ namespace Lightning.Tests
 			Carols = Enumerable.Range(0, CarolsCount).Select(i=> Tester.CreateActor($"Carol{i}")).ToArray();
 			Tester.Start();
 
-
 			Tester.ConnectPeers(Carols.Concat(new[] { Alice, Bob }).ToArray()).GetAwaiter().GetResult();
 
-			ActorTester previousCarol = null;
-
-			foreach(var carol in Carols)
-			{
-				Tester.CreateChannel(previousCarol ?? Alice, carol).GetAwaiter().GetResult();
-				previousCarol = carol;
-			}
-			Tester.CreateChannel(previousCarol, Bob).GetAwaiter().GetResult();
+			var froms = new[] { Alice }.Concat(Carols).ToArray();
+			var tos = Carols.Concat(new[] { Bob }).ToArray();
+			
+			Tester.CreateChannels(froms, tos).GetAwaiter().GetResult();
 			Alice.WaitRouteTo(Bob).GetAwaiter().GetResult();
 		}
 		//[Benchmark]
@@ -109,15 +104,14 @@ namespace Lightning.Tests
 			}
 			Tester.Start();
 
-			foreach(var alice in Alices)
-			{
-				Tester.ConnectPeers(alice, Bob).GetAwaiter().GetResult();
-				Tester.CreateChannel(alice, Bob).GetAwaiter().GetResult();
-			}
-			Alices[Alices.Length - 1].WaitRouteTo(Bob).GetAwaiter().GetResult();
+			var bobs = Enumerable.Range(0, Alices.Length).Select(_ => Bob).ToArray();
+			Task.WaitAll(Alices.Select(a => Tester.ConnectPeers(a, Bob)).ToArray());
+			Tester.CreateChannels(Alices, bobs).GetAwaiter().GetResult();
+			Task.WaitAll(Alices.Select(a => Tester.ConnectPeers(a, Bob)).ToArray());
+			Task.WaitAll(Alices.Select(a => a.WaitRouteTo(Bob)).ToArray());
 		}
 
-		//[Benchmark]
+		[Benchmark]
 		public async Task RunAlicesPayBob()
 		{
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)

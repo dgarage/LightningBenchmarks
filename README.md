@@ -7,10 +7,13 @@ It also provide a way to compare performance accross different implementation by
 The benchmark will produce raw data and plot output file which make it easy for the implementer to draw his conclusion. 
 By reading the [BenchmarkDotnet](https://benchmarkdotnet.org/) documentation, you can easily support different output format or tweak existing one.
 
-It currently only support `c-lightning` on some predefined scenaris presented below.
-This document explains the structure of this project then present a small analysis on the currently benchmarked scenaris so you can understand how to tweak it by yourself.
+This document explains the structure of this project then present a small analysis on the currently benchmarked scenaris so you can understand how to tweak it by yourself, share and reproduce results.
 
 Those tests relies on [this clightning commit](https://github.com/NicolasDorier/lightning/commit/d9eba0e924538d41a9fbb016193633c9cb6de76b) on [Alpine environment](https://github.com/ElementsProject/lightning/pull/1318).
+
+Even if this README is analysing three different scenaris, this is not the point of this project.
+
+This project aims at providing a framework to benchmark any scenari, allow you to share the results, and make sure other peers can reproduce them.
 
 ## Design rationale
 
@@ -77,18 +80,50 @@ You can tweak `BenchmarkConfiguration` for your own analysis need, check the [do
 ---
 NOTICE: We recompiled lightningd to activate compiler optimizations. Those optimizations are not part of the default docker image which is pulled by this project.
 
-This is optional, but if you want to turn on optimizations, you need to recompile the `clightning` image.
+OPTIONAL: if you want to turn on optimizations, you need to recompile the `clightning` image.
 
+1. Git clone
 ```bash
-git clone https://github.com/NicolasDorier/lightning/tree/dockerfile
-
+git clone https://github.com/NicolasDorier/lightning
+cd lightning
+git checkout dockerfile
+```
+2. Apply the following patch
+```diff
+diff --git a/Makefile b/Makefile
+index 5bd73721..19914766 100644
+--- a/Makefile
++++ b/Makefile
+@@ -165,8 +165,8 @@ WIRE_GEN := tools/generate-wire.py
+-CWARNFLAGS := -Werror -Wall -Wundef -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wold-style-definition
+-CDEBUGFLAGS := -std=gnu11 -g -fstack-protector
++CWARNFLAGS := -Werror -Wall -Wundef -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wold-style-definition -Wno-unused-but-set-variable -Wno-maybe-uninitialized
++CDEBUGFLAGS := -std=gnu11 -O3
+```
+3. Build the image
+```bash
 # Be careful "0.0.0.19" might change, it should match what is inside bench/Lightning.Bench/docker-fragments/actor-fragment.yml
 docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:0.0.0.19-bench .
 ```
-1. Clone [this repository](https://github.com/NicolasDorier/lightning/tree/dockerfile).
-2. 
-
 ---
+
+## Tweaking implementation's code
+
+While by default running the benchmark will currently be based on [this commit](https://github.com/NicolasDorier/lightning/commit/d9eba0e924538d41a9fbb016193633c9cb6de76b), you might want to benchmark, change the code and benchmark again and compare results.
+
+```bash
+git clone https://github.com/NicolasDorier/lightning
+cd lightning
+git checkout dockerfile
+```
+
+Then tweak the code you want. You can also rebase the branch on another commit.
+
+Then build the image.
+```
+# Be careful "0.0.0.19" might change, it should match what is inside bench/Lightning.Bench/docker-fragments/actor-fragment.yml
+docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:0.0.0.19-bench .
+```
 
 ## Scenario: Alice pays Bob
 
@@ -120,16 +155,16 @@ await Alice.RPC.SendAsync(invoice.BOLT11);
 `Concurrency` is defined above as:
 
 ```CSharp
-[Params(1, 3, 5, 7)]
+[Params(1, 4, 7, 10)]
 public int Concurrency
 {
 	get; set;
 } = 1;
 ```
 
-So this mean `RunAlicePaysBob` benchmark will launch 4 times with different concurrency levels.  (1, 3, 5, 7)
+So this mean `RunAlicePaysBob` benchmark will launch 4 times with different concurrency levels. (1, 4, 7, 10)
 
-However, `RunAlicePaysBob` is assuming that Alice and Bob have a channel. The environment is setup inside `SetupRunAlicesPayBob`.
+`RunAlicePaysBob` is assuming that Alice and Bob have a channel. The environment is setup inside `SetupRunAlicesPayBob`.
 
 ```CSharp
 [GlobalSetup(Target = nameof(RunAlicePaysBob))]
@@ -143,54 +178,53 @@ public void SetupRunAlicesPayBob()
 }
 ```
 
-### Results
-
-First result show that the more concurrency there is the more volatile is the speed.
-![Boxplot](images/Benchmarks0-boxplot.png)
-![Density](images/Benchmarks0-RunAlicePaysBob-density.png)
-
-Invoice generation with a payment takes approximately `450 ms`, and Alice manage to pays Bob at a maximum rate of `6.5 times per second`.
-
-The Facet Timeline seems to indicate a trend: As more payment has been made, the time it takes to make a single payment seems to increase.
-
-![FacetTimeline](images/Benchmarks0-RunAlicePaysBob-facetTimelineSmooth.png)
-
-Let's try to confirm this by running `100 iterations` instead of `10 iterations`.
-
-For this, we change the benchmark configuration, and will only test one concurrency level.
+We decided to have a longer term view, so we increased the number of iteration from 10 to 100.
 
 ```diff
+diff --git a/bench/Lightning.Bench/BenchmarkConfiguration.cs b/bench/Lightning.Bench/BenchmarkConfiguration.cs
+index 10a6ac4..2730e89 100644
 --- a/bench/Lightning.Bench/BenchmarkConfiguration.cs
 +++ b/bench/Lightning.Bench/BenchmarkConfiguration.cs
 @@ -23,7 +23,7 @@ namespace Lightning.Bench
-                        Add(RPlotExporter.Default);
+ 			Add(RPlotExporter.Default);
+ 
+ 			var job = new Job();
+-			job.Run.TargetCount = 10;
++			job.Run.TargetCount = 100;
 
-                        var job = new Job();
--                       job.Run.TargetCount = 10;
-+                       job.Run.TargetCount = 100;
-                        job.Run.LaunchCount = 1;
-                        job.Run.WarmupCount = 0;
-                        job.Run.InvocationCount = 16;
-diff --git a/bench/Lightning.Bench/Benchmarks.cs b/bench/Lightning.Bench/Benchmarks.cs
-index da8b836..33561fa 100644
---- a/bench/Lightning.Bench/Benchmarks.cs
-+++ b/bench/Lightning.Bench/Benchmarks.cs
-@@ -15,7 +15,6 @@ namespace Lightning.Tests
-        {
-                public const int AliceCount = 5;
-
--               [Params(1, 3, 5, 7)]
-+               [Params(3)]
-                public int Concurrency
-                {
-                        get; set;
 ```
 
-The trend put in evidence this issue:
+### Results
 
-![FacetTimeline](images/Benchmarks1-RunAlicePaysBob-facetTimeline.png)
+``` ini
+
+BenchmarkDotNet=v0.10.14, OS=Windows 10.0.16299.431 (1709/FallCreatorsUpdate/Redstone3)
+Intel Core i7-6500U CPU 2.50GHz (Skylake), 1 CPU, 4 logical and 2 physical cores
+Frequency=2531249 Hz, Resolution=395.0619 ns, Timer=TSC
+.NET Core SDK=2.1.300-rc1-008673
+  [Host]     : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
+  Job-VYNXGO : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
+
+InvocationCount=16  LaunchCount=1  TargetCount=100  
+WarmupCount=0  
+
+```
+|          Method | Concurrency |     Mean |      Error |    StdDev | Payments/s |
+|---------------- |------------ |---------:|-----------:|----------:|----------:|
+| **RunAlicePaysBob** |           **1** | **295.4 ms** |   **8.156 ms** |  **23.00 ms** | **3.38** |
+| **RunAlicePaysBob** |           **4** | **479.9 ms** |  **39.215 ms** | **115.01 ms** | **8.33** |
+| **RunAlicePaysBob** |           **7** | **766.8 ms** |  **81.134 ms** | **239.22 ms** | **9.12** |
+| **RunAlicePaysBob** |          **10** | **970.5 ms** | **120.447 ms** | **355.14 ms** | **10.30** |
+
+Invoice generation with a payment takes approximately `300 ms`, and Alice manage to pays Bob at a maximum rate of `10.3 times per second`.
+
+The Facet Timeline seems to indicate a trend: As more payment has been made, the time it takes to make a single payment seems to increase linearly.
+
+![FacetTimeline](images/Benchmarks0-RunAlicePaysBob-facetTimelineSmooth.png)
 
 This issue has been published on [github](https://github.com/ElementsProject/lightning/issues/1506).
+
+We will see later how we can analyze performance issues at the code level via flame graphs.
 
 ## Scenario: Alice pays Bob via Carols
 
@@ -198,23 +232,21 @@ This issue has been published on [github](https://github.com/ElementsProject/lig
 
 This test is aimed at benchmarking the influence of intermediaries (Carols) on a payment between Alice and Bob.
 
-### Results
-
-For this, before running `run` script, we fix `Concurrency` to 1, and will set `CarolsCount` to 1, 3 and 5.
+For this, before running `run` script, we fix `Concurrency` to 1, and will set `CarolsCount` to 1, 4.
 
 Then we deactivate the `RunAlicePaysBob` test and activate `RunAlicePaysBobViaCarol`.
 
 ```diff
 diff --git a/bench/Lightning.Bench/Benchmarks.cs b/bench/Lightning.Bench/Benchmarks.cs
-index d9c7953..ef0a0ff 100644
+index 89b6bad..0252c7b 100644
 --- a/bench/Lightning.Bench/Benchmarks.cs
 +++ b/bench/Lightning.Bench/Benchmarks.cs
-@@ -15,14 +15,14 @@ namespace Lightning.Tests
- 	{
- 		public const int AliceCount = 5;
+@@ -19,14 +19,14 @@ namespace Lightning.Tests
+ 			get; set;
+ 		} = 5;
  
--		[Params(1, 3, 5, 7)]
-+		//[Params(1, 3, 5, 7)]
+-		[Params(1, 4, 7, 10)]
++		//[Params(1, 4, 7, 10)]
  		public int Concurrency
  		{
  			get; set;
@@ -222,20 +254,20 @@ index d9c7953..ef0a0ff 100644
  
  
 -		//[Params(1, 3, 5)]
-+		[Params(1, 3, 5)]
++		[Params(1, 4)]
  		public int CarolsCount
  		{
  			get; set;
-@@ -45,7 +45,7 @@ namespace Lightning.Tests
+@@ -49,7 +49,7 @@ namespace Lightning.Tests
  			Tester.Start();
  			Tester.CreateChannel(Alice, Bob).GetAwaiter().GetResult();
  		}
 -		[Benchmark]
-+		//[Benchmark]
++		// [Benchmark]
  		public async Task RunAlicePaysBob()
  		{
  			await Task.WhenAll(Enumerable.Range(0, Concurrency)
-@@ -80,7 +80,7 @@ namespace Lightning.Tests
+@@ -84,7 +84,7 @@ namespace Lightning.Tests
  			Tester.CreateChannel(previousCarol, Bob).GetAwaiter().GetResult();
  			Alice.WaitRouteTo(Bob).GetAwaiter().GetResult();
  		}
@@ -247,26 +279,45 @@ index d9c7953..ef0a0ff 100644
 
 ```
 
-The result show that each hop will increase the latency of a single payment by `250ms`.
+### Results
 
-![RunAlicePaysBobViaCarol-density](images/Benchmarks2-RunAlicePaysBobViaCarol-density.png)
+We include `RunAlicePaysBob` as a comparaison in the table.
+
+``` ini
+
+BenchmarkDotNet=v0.10.14, OS=Windows 10.0.16299.431 (1709/FallCreatorsUpdate/Redstone3)
+Intel Core i7-6500U CPU 2.50GHz (Skylake), 1 CPU, 4 logical and 2 physical cores
+Frequency=2531249 Hz, Resolution=395.0619 ns, Timer=TSC
+.NET Core SDK=2.1.300-rc1-008673
+  [Host]     : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
+  Job-RZOJKQ : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
+
+InvocationCount=16  LaunchCount=1  TargetCount=100  
+WarmupCount=0  
+
+```
+|                  Method | CarolsCount |       Mean |    Error |    StdDev |
+|------------------------ |------------ |-----------:|---------:|----------:|
+| **RunAlicePaysBob** |           **0** | **295.4 ms** |   **8.156 ms** |  **23.00 ms** | **3.38** |
+| **RunAlicePaysBobViaCarol** |           **1** |   **540.0 ms** | **16.40 ms** |  **47.83 ms** |
+| **RunAlicePaysBobViaCarol** |           **4** | **1,230.7 ms** | **48.62 ms** | **143.36 ms** |
+
 
 ![RunAlicePaysBobViaCarol-facetTimelineSmooth](images/Benchmarks2-RunAlicePaysBobViaCarol-facetTimelineSmooth.png)
+
+The result show that each hop will increase the latency of a single payment by `240ms`.
 
 ## Scenario: Alices pay Bob
 
 ### Explanation
 
-In this scenario, we will study the influence of multiple Alices paying the same Bob.
-
-### Results
-
+In this scenario, we will study the influence of multiple Alices paying the same Bob, and will compare this to the first `Alice pays Bob` scenario.
 
 We fixed `Concurrency` and varied `AliceCount`.
 
 ```diff
 diff --git a/bench/Lightning.Bench/Benchmarks.cs b/bench/Lightning.Bench/Benchmarks.cs
-index 2060210..d63ed84 100644
+index 89b6bad..87a8430 100644
 --- a/bench/Lightning.Bench/Benchmarks.cs
 +++ b/bench/Lightning.Bench/Benchmarks.cs
 @@ -13,13 +13,13 @@ namespace Lightning.Tests
@@ -274,14 +325,14 @@ index 2060210..d63ed84 100644
  	public class Benchmarks
  	{
 -		//[Params(1, 3, 5)]
-+		[Params(1, 3, 7)]
++		[Params(4, 7, 10)]
  		public int AliceCount
  		{
  			get; set;
  		} = 5;
  
--		[Params(1, 3, 5, 7)]
-+		//[Params(1, 3, 5, 7)]
+-		[Params(1, 4, 7, 10)]
++		//[Params(1, 4, 7, 10)]
  		public int Concurrency
  		{
  			get; set;
@@ -306,56 +357,39 @@ index 2060210..d63ed84 100644
 
 ```
 
-The result is as follow:
+### Results
 
-![Alices pay Bob plots](images/Benchmarks3-RunAlicesPayBob-density.png)
+Let's compare the result of X Alices payment 1 Bob versus 1 Alice paying 7 time at once 1 Bob. The result is as follow:
 
-This result is particulary interesting when we compare to our first benchmark `Alice pays Bob`:
+|          Method | AliceCount |       Mean |     Error |   StdDev  |Payments/s
+|---------------- |----------- |-----------:|----------:|-----------:|-----------:|
+| RunAlicePaysBob |           1 | 295.4 ms |   8.156 ms |  23.00 ms | 3.38 |
+| **RunAlicesPayBob** |          **4** |   **953.5 ms** |  **40.70 ms** | **114.1 ms** | **4.27** |
+| RunAlicePaysBob |           4 | 479.9 ms |  39.215 ms | 115.01 ms | 8.33 |
+| **RunAlicesPayBob** |          **7** | **1,700.7 ms** |  **93.04 ms** | **274.3 ms**  | **4.11** |
+| RunAlicePaysBob |           7 | 766.8 ms |  81.134 ms | 239.22 ms | 9.12 | 
+| **RunAlicesPayBob** |         **10** | **2,773.1 ms** | **128.20 ms** | **376.0 ms**  |  **3.06** |  
+| RunAlicePaysBob |          10 | 970.5 ms | 120.447 ms | 355.14 ms | 10.30 |
 
-![Boxplot](images/Benchmarks0-RunAlicePaysBob-density.png)
+![Benchmarks3-RunAlicesPayBob-facetTimelineSmooth.png](images/Benchmarks3-RunAlicesPayBob-facetTimelineSmooth.png)
 
-Having 7 Alices paying at the same time is faster than having 1 Alice making 7 payments at the same time.
+We can see we are capped at maximum `4.27 payment per seconds` for 4 Alices versus `10.00 payment per seconds` for 1 Alices paying 10 times at once.
 
-In the `Alice pays Bob` scenario, we discovered that generating an invoice and making a payment was increasing linearly. 
+## Diving into the code with flame graphs
 
-Let's compare by having 3 Alices making the same number of payments to Bob.
+We identified that the more invoice and payment was created, the longer it take to make a new one. It would be nice to be able to dive into profiling code so we can identify issues.
 
-```diff
-diff --git a/bench/Lightning.Bench/BenchmarkConfiguration.cs b/bench/Lightning.Bench/BenchmarkConfiguration.cs
-index 10a6ac4..2730e89 100644
---- a/bench/Lightning.Bench/BenchmarkConfiguration.cs
-+++ b/bench/Lightning.Bench/BenchmarkConfiguration.cs
-@@ -23,7 +23,7 @@ namespace Lightning.Bench
- 			Add(RPlotExporter.Default);
- 
- 			var job = new Job();
--			job.Run.TargetCount = 10;
-+			job.Run.TargetCount = 100;
- 			job.Run.LaunchCount = 1;
- 			job.Run.WarmupCount = 0;
- 			job.Run.InvocationCount = 16;
-diff --git a/bench/Lightning.Bench/Benchmarks.cs b/bench/Lightning.Bench/Benchmarks.cs
-index 2060210..ffc7a6f 100644
---- a/bench/Lightning.Bench/Benchmarks.cs
-+++ b/bench/Lightning.Bench/Benchmarks.cs
-@@ -13,13 +13,12 @@ namespace Lightning.Tests
- {
- 	public class Benchmarks
- 	{
--		//[Params(1, 3, 5)]
- 		public int AliceCount
- 		{
- 			get; set;
--		} = 5;
-+		} = 3;
+However, our current profiling turned on compiler optimization.
+Let's delete our current docker image so the one from docker hub (without our custom changes) get downloaded.
+
+```bash
+docker rmi nicolasdorier/clightning:0.0.0.19-bench
 ```
 
-![facet](images/Benchmarks4-RunAlicesPayBob-facetTimeline.png)
+We will run `Alice pays Bob` with concurrency of `7` for an undefined amount of time.
+While this bench is running, we will sample the stacktrace for `1 min` every `5 min` for Alice and Bob and generate a flamegraph everytimes.
 
-We can notice that in `Alice pays Bob` case, the line has an intercept of `+100ms` compared to `Alices pay Bob`, which might indicated some lock contention.
-
-The slope is 2495 for `Alice pays Bob` and 1120.75 for `Alices pay Bob`.
-This shows that the cause for the slowdown is mainly related to the number of payments.
+We will then analyse those flamegraph over time and check if we can deduce something out of it.
 
 ## Conclusion
 
@@ -366,7 +400,6 @@ While the analysis of the three previous scenaris highlighted some performance i
 ## Remaining work to do
 
 * Support for [Eclair](https://github.com/ACINQ/eclair) and [LND](https://github.com/lightningnetwork/lnd).
-* Generating source code level profiling
 * Being able to run different node version side by side to compare the performance on same plots. (This can be done by creating alternative `actor-fragment.yml`)
 
 ## License

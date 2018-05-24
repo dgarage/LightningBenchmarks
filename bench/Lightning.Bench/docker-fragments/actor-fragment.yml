@@ -16,6 +16,7 @@ services:
         announce-addr=actor0
         log-level=broken
         dev-broadcast-interval=1000
+        ignore-fee-limits=true
     ports:
       - "24736:9835" # api port
     expose:

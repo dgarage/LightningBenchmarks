@@ -93,62 +93,75 @@ namespace Lightning.Tests
 		}
 
 
-		public async Task CreateChannel(ActorTester from, ActorTester to)
+		public async Task CreateChannels(ActorTester[] froms, ActorTester[] tos)
 		{
-			var miner = from.BitcoinRPC;
-			var toInfo = await to.RPC.GetInfoAsync();
+			var miner = froms[0].BitcoinRPC;
+			int blockToMine = 0;
+			bool[] established = froms.Select(_ => false).ToArray();
 			while(true)
 			{
+				if(blockToMine != 0)
+				{
+					await miner.GenerateAsync(blockToMine);
+					await WaitLNSynched(miner, tos.Concat(froms).ToArray());
+					blockToMine = 0;
+				}
 				try
 				{
-					var skippedStates = new[] { "ONCHAIN", "CHANNELD_SHUTTING_DOWN", "CLOSINGD_SIGEXCHANGE", "CLOSINGD_COMPLETE", "FUNDING_SPEND_SEEN" };
-					var channel = (await from.RPC.ListPeersAsync())
-								.Where(p => p.Id == toInfo.Id)
-								.SelectMany(p => p.Channels)
-								.Where(c => !skippedStates.Contains(c.State ?? ""))
-								.FirstOrDefault();
-					switch(channel?.State)
+					for(int i = 0; i < froms.Length; i++)
 					{
-						case null:
-							await WaitLNSynched(miner, to, from);
-							var toNodeInfo = new NodeInfo(toInfo.Id, to.P2PHost, toInfo.Port);
-							await from.RPC.ConnectAsync(toNodeInfo);
+						var to = tos[i];
+						var from = froms[i];
+						if(established.All(_ => _))
+							return;
+						if(established[i])
+							continue;
 
-							while(true)
-							{
+						var toInfo = await to.RPC.GetInfoAsync();
+						var skippedStates = new[] { "ONCHAIN", "CHANNELD_SHUTTING_DOWN", "CLOSINGD_SIGEXCHANGE", "CLOSINGD_COMPLETE", "FUNDING_SPEND_SEEN" };
+						var channel = (await from.RPC.ListPeersAsync())
+									.Where(p => p.Id == toInfo.Id)
+									.SelectMany(p => p.Channels)
+									.Where(c => !skippedStates.Contains(c.State ?? ""))
+									.FirstOrDefault();
+						switch(channel?.State)
+						{
+							case null:
+								var toNodeInfo = new NodeInfo(toInfo.Id, to.P2PHost, toInfo.Port);
+								await from.RPC.ConnectAsync(toNodeInfo);
+
 								var funds = await from.RPC.ListFundsAsync();
 								if(funds.Outputs.Any(o => o.Status == "unconfirmed"))
 								{
-									await miner.GenerateAsync(1);
-									continue;
+									blockToMine = 1;
 								}
-								if(!funds.Outputs.Any(o => o.Status == "confirmed"))
+								else if(!funds.Outputs.Any(o => o.Status == "confirmed"))
 								{
 									var address = await from.RPC.NewAddressAsync();
 									await miner.SendToAddressAsync(address, Money.Coins(49.0m));
-									await miner.GenerateAsync(1);
-									await WaitLNSynched(miner, to, from);
-									continue;
+									blockToMine = 7;
+								}
+								else
+								{
+									await from.RPC.FundChannelAsync(toNodeInfo, Money.Satoshis(16777215));
+									blockToMine = 7;
 								}
 								break;
-							}
-							await from.RPC.FundChannelAsync(toNodeInfo, Money.Satoshis(16777215));
-
-							break;
-						case "CHANNELD_AWAITING_LOCKIN":
-							await miner.GenerateAsync(1);
-							await WaitLNSynched(miner, to, from);
-							break;
-						case "CHANNELD_NORMAL":
-							Console.WriteLine($"// Channel established: {from} => {to}");
-							return;
-						default:
-							throw new NotSupportedException(channel?.State ?? "");
+							case "CHANNELD_AWAITING_LOCKIN":
+								blockToMine = 1;
+								break;
+							case "CHANNELD_NORMAL":
+								Console.WriteLine($"// Channel established: {from} => {to}");
+								established[i] = true;
+								break;
+							default:
+								throw new NotSupportedException(channel?.State ?? "");
+						}
 					}
 				}
 				catch(RPCException ex) when(ex.RPCCode == RPCErrorCode.RPC_WALLET_INSUFFICIENT_FUNDS)
 				{
-					await miner.GenerateAsync(101);
+					blockToMine = 101;
 				}
 			}
 		}
