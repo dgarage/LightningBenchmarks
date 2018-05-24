@@ -490,7 +490,7 @@ It seems to have two separate issues:
 
 * Logging seems to take a huge amount of time (`status_fmt`, `log_status_msg`, `tal_vfmt`)
 * `brute_force_first` is also taking lot's of time, as admitted by the writer of [this function](https://github.com/ElementsProject/lightning/blob/8d641456a1167452cd0df20e6fb115702227b41a/ccan/ccan/timer/timer.c#L198).
-* The call to `__clone` seems to originate from forked processes not filtering logs before sending them to `lightningd` parent process. (thanks [ZmnSCPxj](https://github.com/ZmnSCPxj))
+* The call to `__clone` seems to originate from forked processes not filtering logs before sending them to `lightningd` parent process. (thanks to [ZmnSCPxj](https://github.com/ZmnSCPxj))
 
 Still there is no obvious culprit about the linear scaling issue.
 
