@@ -15,6 +15,8 @@ Even if this README is analysing three different scenaris, this is not the point
 
 This project aims at providing a framework to benchmark any scenari, allow you to share the results, and make sure other peers can reproduce them.
 
+This work has been done by [DG Lab's Blockchain team](https://www.dglab.com/) for the [BSAFE.NETWORK LAYER 2 TECHNOLOGY COMPETITION](http://bsafe.network/technology-competiton/leyer2competition/).
+
 ## Design rationale
 
 We are leveraging `docker` and `docker-compose` to create a reliable and reproducible environment on any OS supporting `docker`.
