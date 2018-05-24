@@ -519,7 +519,8 @@ We also tried to run the same tests on a Virtual Machine hosted on Azure on a [D
 We will work toward replicating the performance claimed as much as possible.
 Although, the linear scaling issue and logging perf issues found during our benchmark are unlikely solved by having different hardware.
 
-The performance bottleneck we identified seems easily solvable. We will run again those once the raised issues have been solved.
+The performance issues we identified are easily solvable and does not show any fundamental issue at the protocol level. 
+We will produce flame graphs again once the issues are solved.
 
 ## Remaining work to do
 
