@@ -391,6 +391,130 @@ While this bench is running, we will sample the stacktrace for `1 min` every `5 
 
 We will then analyse those flamegraph over time and check if we can deduce something out of it.
 
+Returns to original `Alice pays Bob` benchmark by running
+```bash
+git reset --hard HEAD
+```
+
+Then configure it to run indefinitely with 7 concurrent payments.
+```diff
+diff --git a/bench/Lightning.Bench/BenchmarkConfiguration.cs b/bench/Lightning.Bench/BenchmarkConfiguration.cs
+index 10a6ac4..6526d15 100644
+--- a/bench/Lightning.Bench/BenchmarkConfiguration.cs
++++ b/bench/Lightning.Bench/BenchmarkConfiguration.cs
+@@ -23,7 +23,7 @@ namespace Lightning.Bench
+ 			Add(RPlotExporter.Default);
+ 
+ 			var job = new Job();
+-			job.Run.TargetCount = 10;
++			job.Run.TargetCount = 1000;
+ 			job.Run.LaunchCount = 1;
+ 			job.Run.WarmupCount = 0;
+ 			job.Run.InvocationCount = 16;
+diff --git a/bench/Lightning.Bench/Benchmarks.cs b/bench/Lightning.Bench/Benchmarks.cs
+index 8ec418b..651e451 100644
+--- a/bench/Lightning.Bench/Benchmarks.cs
++++ b/bench/Lightning.Bench/Benchmarks.cs
+@@ -19,7 +19,8 @@ namespace Lightning.Tests
+ 			get; set;
+ 		} = 5;
+ 
+-		[Params(1, 4, 7, 10)]
++		//[Params(1, 4, 7, 10)]
++		[Params(7)]
+ 		public int Concurrency
+ 		{
+ 			get; set;
+
+```
+Run with the `run.sh`/`run.ps1` script.
+
+In the logs you will have a link to the benchmark directory, this is where the flamegraph will by generated.
+```
+WORKING DIRECTORY: C:\Users\NicolasDorier\Documents\Sources\LightningBenchmarks\bench\Lightning.Bench\bin\Release\netcoreapp2.0\69c5910a-8f5e-4eea-a94f-d8d38eea977c\bin\Release\netcoreapp2.0\lightningbench
+```
+When you see that the tests start running by seeing
+```
+// BeforeMainRun
+MainTarget  1: 16 op, 7596177618.24 ns, 474.7611 ms/op
+MainTarget  2: 16 op, 7174115229.28 ns, 448.3822 ms/op
+MainTarget  3: 16 op, 9179380219.01 ns, 573.7113 ms/op
+MainTarget  4: 16 op, 7582696526.50 ns, 473.9185 ms/op
+```
+Run the following commands on two different shell:
+```bash
+docker exec lightningbench_Alice_1 bash -c sample-loop.sh
+```
+Sampling slow down the target process, so it is better to not sample both actor at the same time:
+```bash
+sleep 120
+docker exec lightningbench_Bob_1 bash -c sample-loop.sh
+```
+
+Those are unlimited loops taking sampling stacktraces for `1 minute` every `5 minutes`.
+The results get saved in `BENCHMARK_DIRECTORY\Alice_traces` and `BENCHMARK_DIRECTORY\Bob_traces`.
+
+Note that on top of this, you can connect via back to Bob or alice via:
+
+```bash
+docker exec -ti lightningbench_Bob_1 bash
+```
+You can use this to use utilities like `top` to monitor how CPU is affected, or use `gdb`...
+
+Once you are done, just hit `CTRL+C` on the terminal running `run` script to stop benchmark.
+You can format your finding into one image with [imagemagick](http://imagemagick.org/)
+
+Inside your benchmark directory:
+
+```bash
+cd Alice_traces
+convert *.svg -crop 1200x550+0+1584 cropped.jpg
+convert cropped-*.jpg -append merged.jpg
+cd ..
+cd Bob_traces
+convert *.svg -crop 1200x550+0+1584 cropped.jpg
+convert cropped-*.jpg -append merged.jpg
+cd ..
+convert Alice_traces/merged.jpg Bob_traces/merged.jpg +append traces.jpg
+```
+
+This will generate an unified graph. Left column is `Bob`, right column is `Alice`.
+Vertical dimension is time.
+
+![Traces.jpg](https://aois.blob.core.windows.net/public/CLightningBenchmarkResults/traces.jpg)
+
+This finding is being discussed on [this github issue](https://github.com/ElementsProject/lightning/issues/1506).
+It seems to have two separate issues:
+
+* Logging seems to take a huge amount of time (`status_fmt`, `log_status_msg`, `tal_vfmt`)
+* `brute_force_first` is also taking lot's of time, as admitted by the writer of [this function](https://github.com/ElementsProject/lightning/blob/8d641456a1167452cd0df20e6fb115702227b41a/ccan/ccan/timer/timer.c#L198).
+* The call to `__clone` seems to originate from forked processes not filtering logs before sending them to `lightningd` parent process. (thanks [ZmnSCPxj](https://github.com/ZmnSCPxj))
+
+Still there is no obvious culprit about the linear scaling issue.
+
+## Artifacts
+
+* [flamegraphs.zip](https://aois.blob.core.windows.net/public/CLightningBenchmarkResults/flamegraphs.zip)
+* [AlicePaysBob.zip](https://aois.blob.core.windows.net/public/CLightningBenchmarkResults/AlicePaysBob.zip)
+* [AlicesPayBob.zip](https://aois.blob.core.windows.net/public/CLightningBenchmarkResults/AlicesPayBob.zip)
+* [AlicePaysBobViaCarol.zip](https://aois.blob.core.windows.net/public/CLightningBenchmarkResults/AlicePaysBobViaCarol.zip)
+
+## Further reading
+
+Blockstream claimed to have benchmarked `500 transactions per seconds` at [consensus 2018](https://coinjournal.net/scaling-layer-2-and-cryptographic-innovations-discussed-at-consensus-2018/) along with a [recording](https://asciinema.org/a/182054).
+
+Several factors might explain the differences:
+
+1. In Blockstream's benchmark, invoices are pregenerated, while in `AlicePaysBob` benchmark, the invoice is generated then paid immediately.
+2. In Blockstream's benchmark, invoices are paid as fast as possible. In our benchmark, invoices are paid by batch whose size is 7.
+3. In Blockstream's benchmark, the test is running on RAM Disk. In our benchmark, tests are run on SSD.
+4. In Blockstream's benchmark, tests are run on "bare metal". We are using docker and connecting to clightning via `socat`.
+5. Docker might limit CPU resources (even if we took care at configuring it correctly)
+6. Our machines specs might differ. (Ours is `Intel Core i7-6500U CPU 2.50GHz (Skylake), 1 CPU, 4 logical and 2 physical cores Frequency=2531249 Hz`)
+
+We will work toward replicating the performance claimed as much as possible.
+Although, the linear scaling issue and logging perf issues found during our benchmark are unlikely solved by having different hardware.
+
 ## Conclusion
 
 This project is about having an easy way to setup a reproductible environment for running and comparing benchmarks.
