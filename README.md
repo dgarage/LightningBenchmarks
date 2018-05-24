@@ -501,7 +501,7 @@ Still there is no obvious culprit about the linear scaling issue.
 * [AlicesPayBob.zip](https://aois.blob.core.windows.net/public/CLightningBenchmarkResults/AlicesPayBob.zip)
 * [AlicePaysBobViaCarol.zip](https://aois.blob.core.windows.net/public/CLightningBenchmarkResults/AlicePaysBobViaCarol.zip)
 
-## Further reading
+## Conclusion
 
 Blockstream claimed to have benchmarked `500 transactions per seconds` at [consensus 2018](https://coinjournal.net/scaling-layer-2-and-cryptographic-innovations-discussed-at-consensus-2018/) along with a [recording](https://asciinema.org/a/182054).
 
@@ -520,12 +520,6 @@ We will work toward replicating the performance claimed as much as possible.
 Although, the linear scaling issue and logging perf issues found during our benchmark are unlikely solved by having different hardware.
 
 The performance bottleneck we identified seems easily solvable. We will run again those once the raised issues have been solved.
-
-## Conclusion
-
-This project is about having an easy way to setup a reproductible environment for running and comparing benchmarks.
-
-While the analysis of the three previous scenaris highlighted some performance issues and numbers, those are only an example among others.
 
 ## Remaining work to do
 
