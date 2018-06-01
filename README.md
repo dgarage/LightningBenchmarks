@@ -105,7 +105,7 @@ index 5bd73721..19914766 100644
 3. Build the image
 ```bash
 # Be careful "0.0.0.19" might change, it should match what is inside bench/Lightning.Bench/docker-fragments/actor-fragment.yml
-docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:0.0.0.19-bench .
+docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:0.0.0.20-bench .
 ```
 ---
 
@@ -124,7 +124,7 @@ Then tweak the code you want. You can also rebase the branch on another commit.
 Then build the image.
 ```
 # Be careful "0.0.0.19" might change, it should match what is inside bench/Lightning.Bench/docker-fragments/actor-fragment.yml
-docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:0.0.0.19-bench .
+docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:0.0.0.20-bench .
 ```
 
 ## Scenario: Alice pays Bob
@@ -385,7 +385,7 @@ However, our current profiling turned on compiler optimization.
 Let's delete our current docker image so the one from docker hub (without our custom changes) get downloaded.
 
 ```bash
-docker rmi nicolasdorier/clightning:0.0.0.19-bench
+docker rmi nicolasdorier/clightning:0.0.0.20-bench
 ```
 
 We will run `Alice pays Bob` with concurrency of `7` for an undefined amount of time.
