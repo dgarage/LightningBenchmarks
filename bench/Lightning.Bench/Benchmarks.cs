@@ -25,6 +25,10 @@ namespace Lightning.Tests
 			get; set;
 		} = 1;
 
+		public int TotalPayments
+		{
+			get; set;
+		} = 50;
 
 		//[Params(1, 3, 5)]
 		public int CarolsCount
@@ -52,11 +56,15 @@ namespace Lightning.Tests
 		[Benchmark]
 		public async Task RunAlicePaysBob()
 		{
+			int paymentsLeft = TotalPayments;
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
 				.Select(async _ =>
 				{
-					var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(100));
-					await Alice.GetRPC(_).SendAsync(invoice.BOLT11);
+					while(Interlocked.Decrement(ref paymentsLeft) >= 0)
+					{
+						var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(100));
+						await Alice.GetRPC(_).SendAsync(invoice.BOLT11);
+					}
 				}));
 		}
 		#endregion
@@ -68,14 +76,14 @@ namespace Lightning.Tests
 			Tester = Tester.Create();
 			Alice = Tester.CreateActor("Alice");
 			Bob = Tester.CreateActor("Bob");
-			Carols = Enumerable.Range(0, CarolsCount).Select(i=> Tester.CreateActor($"Carol{i}")).ToArray();
+			Carols = Enumerable.Range(0, CarolsCount).Select(i => Tester.CreateActor($"Carol{i}")).ToArray();
 			Tester.Start();
 
 			Tester.ConnectPeers(Carols.Concat(new[] { Alice, Bob }).ToArray()).GetAwaiter().GetResult();
 
 			var froms = new[] { Alice }.Concat(Carols).ToArray();
 			var tos = Carols.Concat(new[] { Bob }).ToArray();
-			
+
 			Tester.CreateChannels(froms, tos).GetAwaiter().GetResult();
 			Alice.WaitRouteTo(Bob).GetAwaiter().GetResult();
 		}
@@ -114,13 +122,17 @@ namespace Lightning.Tests
 		//[Benchmark]
 		public async Task RunAlicesPayBob()
 		{
+			int paymentsLeft = TotalPayments;
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
 				.SelectMany(_ => Enumerable.Range(0, AliceCount))
 				.Select(async _ =>
 				{
-					var alice = Alices[_];
-					var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(1000));
-					await alice.GetRPC(_).SendAsync(invoice.BOLT11);
+					while(Interlocked.Decrement(ref paymentsLeft) >= 0)
+					{
+						var alice = Alices[_];
+						var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(1000));
+						await alice.GetRPC(_).SendAsync(invoice.BOLT11);
+					}
 				}));
 		}
 		#endregion
