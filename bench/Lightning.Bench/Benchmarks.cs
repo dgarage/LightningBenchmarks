@@ -19,7 +19,7 @@ namespace Lightning.Tests
 			get; set;
 		} = 5;
 
-		[Params(1, 4, 7, 10)]
+		[Params(20, 40, 60, 80)]
 		public int Concurrency
 		{
 			get; set;
@@ -28,7 +28,7 @@ namespace Lightning.Tests
 		public int TotalPayments
 		{
 			get; set;
-		} = 50;
+		} = 100;
 
 		//[Params(1, 3, 5)]
 		public int CarolsCount

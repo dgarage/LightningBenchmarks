@@ -23,10 +23,11 @@ namespace Lightning.Bench
 			Add(RPlotExporter.Default);
 
 			var job = new Job();
-			job.Run.TargetCount = 10;
+			job.Run.TargetCount = 100;
 			job.Run.LaunchCount = 1;
 			job.Run.WarmupCount = 0;
-			job.Run.InvocationCount = 16;
+			job.Run.InvocationCount = 1;
+			job.Run.UnrollFactor = 1;
 			Add(job);
 		}
 	}
