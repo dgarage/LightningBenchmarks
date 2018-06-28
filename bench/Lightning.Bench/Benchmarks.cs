@@ -90,11 +90,15 @@ namespace Lightning.Tests
 		//[Benchmark]
 		public async Task RunAlicePaysBobViaCarol()
 		{
+			int paymentsLeft = TotalPayments;
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
 				.Select(async _ =>
 				{
-					var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(1000));
-					await Alice.GetRPC(_).SendAsync(invoice.BOLT11);
+					while(Interlocked.Decrement(ref paymentsLeft) >= 0)
+					{
+						var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(100));
+						await Alice.GetRPC(_).SendAsync(invoice.BOLT11);
+					}
 				}));
 		}
 		#endregion
