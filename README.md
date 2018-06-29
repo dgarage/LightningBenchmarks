@@ -104,14 +104,14 @@ index 5bd73721..19914766 100644
 ```
 3. Build the image
 ```bash
-# Be careful "0.0.0.19" might change, it should match what is inside bench/Lightning.Bench/docker-fragments/actor-fragment.yml
-docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:0.0.0.20-bench .
+# Be careful "v0.6" might change, it should match what is inside bench/Lightning.Bench/docker-fragments/actor-fragment.yml
+docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:v0.6-bench .
 ```
 ---
 
 ## Tweaking implementation's code
 
-While by default running the benchmark will currently be based on [this commit](https://github.com/NicolasDorier/lightning/commit/d9eba0e924538d41a9fbb016193633c9cb6de76b), you might want to benchmark, change the code and benchmark again and compare results.
+While by default running the benchmark will currently be based on [this tag](https://github.com/NicolasDorier/lightning/tree/v0.6-docker), you might want to benchmark, change the code and benchmark again and compare results.
 
 ```bash
 git clone https://github.com/NicolasDorier/lightning
@@ -123,8 +123,8 @@ Then tweak the code you want. You can also rebase the branch on another commit.
 
 Then build the image.
 ```
-# Be careful "0.0.0.19" might change, it should match what is inside bench/Lightning.Bench/docker-fragments/actor-fragment.yml
-docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:0.0.0.20-bench .
+# Be careful "v0.6" might change, it should match what is inside bench/Lightning.Bench/docker-fragments/actor-fragment.yml
+docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdorier/clightning:v0.6-bench .
 ```
 
 ## Scenario: Alice pays Bob
@@ -133,38 +133,37 @@ docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdori
 
 When you ran `run` script, the default scenario, BenchmarkDotNet will find all methods with the `[Benchmark]` attribute inside `Benchmarks.cs`.
 
-Only one has the attribute: `RunAlicePaysBob`.
+As you can see, `RunAlicePaysBob` is running concurrently (`Concurrency` times) the following code:
+The code try to process `TotalPayments=100` invoices for each run.
+
 ```CSharp
 [Benchmark]
 public async Task RunAlicePaysBob()
 {
+	int paymentsLeft = TotalPayments;
 	await Task.WhenAll(Enumerable.Range(0, Concurrency)
 		.Select(async _ =>
 		{
-            var invoice = await Bob.RPC.CreateInvoice(LightMoney.Satoshis(100));
-            await Alice.RPC.SendAsync(invoice.BOLT11);
+			while(Interlocked.Decrement(ref paymentsLeft) >= 0)
+			{
+				var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(100));
+				await Alice.GetRPC(_).SendAsync(invoice.BOLT11);
+			}
 		}));
 }
-```
-
-As you can see, `RunAlicePaysBob` is running concurrently (`Concurrency` times) the following code:
-
-```CSharp
-var invoice = await Bob.RPC.CreateInvoice(LightMoney.Satoshis(100));
-await Alice.RPC.SendAsync(invoice.BOLT11);
 ```
 
 `Concurrency` is defined above as:
 
 ```CSharp
-[Params(1, 4, 7, 10)]
+[Params(20, 40, 60, 80)]
 public int Concurrency
 {
 	get; set;
 } = 1;
 ```
 
-So this mean `RunAlicePaysBob` benchmark will launch 4 times with different concurrency levels. (1, 4, 7, 10)
+So this mean `RunAlicePaysBob` benchmark will launch 4 times with different concurrency levels. (20, 40, 60, 80)
 
 `RunAlicePaysBob` is assuming that Alice and Bob have a channel. The environment is setup inside `SetupRunAlicesPayBob`.
 
@@ -180,53 +179,33 @@ public void SetupRunAlicesPayBob()
 }
 ```
 
-We decided to have a longer term view, so we increased the number of iteration from 10 to 100.
-
-```diff
-diff --git a/bench/Lightning.Bench/BenchmarkConfiguration.cs b/bench/Lightning.Bench/BenchmarkConfiguration.cs
-index 10a6ac4..2730e89 100644
---- a/bench/Lightning.Bench/BenchmarkConfiguration.cs
-+++ b/bench/Lightning.Bench/BenchmarkConfiguration.cs
-@@ -23,7 +23,7 @@ namespace Lightning.Bench
- 			Add(RPlotExporter.Default);
- 
- 			var job = new Job();
--			job.Run.TargetCount = 10;
-+			job.Run.TargetCount = 100;
-
-```
-
 ### Results
 
-``` ini
+``` ini	
 
-BenchmarkDotNet=v0.10.14, OS=Windows 10.0.16299.431 (1709/FallCreatorsUpdate/Redstone3)
+BenchmarkDotNet=v0.10.14, OS=Windows 10.0.16299.492 (1709/FallCreatorsUpdate/Redstone3)
 Intel Core i7-6500U CPU 2.50GHz (Skylake), 1 CPU, 4 logical and 2 physical cores
-Frequency=2531249 Hz, Resolution=395.0619 ns, Timer=TSC
-.NET Core SDK=2.1.300-rc1-008673
+Frequency=2531248 Hz, Resolution=395.0620 ns, Timer=TSC
+.NET Core SDK=2.1.300
   [Host]     : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
-  Job-VYNXGO : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
+  Job-FFGKFX : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
 
-InvocationCount=16  LaunchCount=1  TargetCount=100  
-WarmupCount=0  
+InvocationCount=1  LaunchCount=1  TargetCount=100  
+UnrollFactor=1  WarmupCount=0  
 
 ```
-|          Method | Concurrency |     Mean |      Error |    StdDev | Payments/s |
-|---------------- |------------ |---------:|-----------:|----------:|----------:|
-| **RunAlicePaysBob** |           **1** | **295.4 ms** |   **8.156 ms** |  **23.00 ms** | **3.38** |
-| **RunAlicePaysBob** |           **4** | **479.9 ms** |  **39.215 ms** | **115.01 ms** | **8.33** |
-| **RunAlicePaysBob** |           **7** | **766.8 ms** |  **81.134 ms** | **239.22 ms** | **9.12** |
-| **RunAlicePaysBob** |          **10** | **970.5 ms** | **120.447 ms** | **355.14 ms** | **10.30** |
+|          Method | Concurrency |    Mean |    Error |   StdDev |  Median |  Payment/sec |
+|---------------- |------------ |--------:|---------:|---------:|--------:|--------:|
+| **RunAlicePaysBob** |          **20** | **3.788 s** | **0.1168 s** | **0.3237 s** | **3.672 s** | **27.23** |
+| **RunAlicePaysBob** |          **40** | **3.106 s** | **0.0739 s** | **0.1998 s** | **3.095 s** | **32.31** |
+| **RunAlicePaysBob** |          **60** | **2.881 s** | **0.0439 s** | **0.1180 s** | **2.882 s** | **34.69** |
+| **RunAlicePaysBob** |          **80** | **2.935 s** | **0.0516 s** | **0.1403 s** | **2.925 s** | **34.18** |
 
-Invoice generation with a payment takes approximately `300 ms`, and Alice manage to pays Bob at a maximum rate of `10.3 times per second`.
 
-The Facet Timeline seems to indicate a trend: As more payment has been made, the time it takes to make a single payment seems to increase linearly.
+We topped we a mean of `34 payments per second` achieved by having `60 simultaneous requests`.
 
-![FacetTimeline](images/Benchmarks0-RunAlicePaysBob-facetTimelineSmooth.png)
-
-This issue has been published on [github](https://github.com/ElementsProject/lightning/issues/1506).
-
-We will see later how we can analyze performance issues at the code level via flame graphs.
+![facetDensity](images/Benchmarks-RunAlicePaysBob-facetDensity.png)
+![facetTimeline](images/Benchmarks-RunAlicePaysBob-facetTimeline.png)
 
 ## Scenario: Alice pays Bob via Carols
 
@@ -234,80 +213,86 @@ We will see later how we can analyze performance issues at the code level via fl
 
 This test is aimed at benchmarking the influence of intermediaries (Carols) on a payment between Alice and Bob.
 
-For this, before running `run` script, we fix `Concurrency` to 1, and will set `CarolsCount` to 1, 4.
+For this, before running `run` script, we fix `Concurrency` to 60, and will set `CarolsCount` to 0, 1, 2, 3.
 
 Then we deactivate the `RunAlicePaysBob` test and activate `RunAlicePaysBobViaCarol`.
 
+We also changed `TotalPayments` to `50` so the test are faster, and divided by two the concurrency accordingly.
+
 ```diff
 diff --git a/bench/Lightning.Bench/Benchmarks.cs b/bench/Lightning.Bench/Benchmarks.cs
-index 89b6bad..0252c7b 100644
+index 09fedd0..2589220 100644
 --- a/bench/Lightning.Bench/Benchmarks.cs
 +++ b/bench/Lightning.Bench/Benchmarks.cs
-@@ -19,14 +19,14 @@ namespace Lightning.Tests
- 			get; set;
- 		} = 5;
- 
--		[Params(1, 4, 7, 10)]
-+		//[Params(1, 4, 7, 10)]
- 		public int Concurrency
- 		{
- 			get; set;
- 		} = 1;
- 
- 
--		//[Params(1, 3, 5)]
-+		[Params(1, 4)]
- 		public int CarolsCount
- 		{
- 			get; set;
-@@ -49,7 +49,7 @@ namespace Lightning.Tests
- 			Tester.Start();
- 			Tester.CreateChannel(Alice, Bob).GetAwaiter().GetResult();
- 		}
--		[Benchmark]
-+		// [Benchmark]
- 		public async Task RunAlicePaysBob()
- 		{
- 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
-@@ -84,7 +84,7 @@ namespace Lightning.Tests
- 			Tester.CreateChannel(previousCarol, Bob).GetAwaiter().GetResult();
- 			Alice.WaitRouteTo(Bob).GetAwaiter().GetResult();
- 		}
--		//[Benchmark]
-+		[Benchmark]
- 		public async Task RunAlicePaysBobViaCarol()
- 		{
- 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
+@@ -19,7 +19,7 @@ namespace Lightning.Tests
+                        get; set;
+                } = 5;
 
+-               [Params(20, 40, 60, 80)]
++               [Params(30)]
+                public int Concurrency
+                {
+                        get; set;
+@@ -28,9 +28,9 @@ namespace Lightning.Tests
+                public int TotalPayments
+                {
+                        get; set;
+-               } = 100;
++               } = 50;
+
+-               //[Params(1, 3, 5)]
++               [Params(0, 1, 2, 3)]
+                public int CarolsCount
+                {
+                        get; set;
+@@ -53,7 +53,7 @@ namespace Lightning.Tests
+                        Tester.Start();
+                        Tester.CreateChannels(new[] { Alice }, new[] { Bob }).GetAwaiter().GetResult();
+                }
+-               [Benchmark]
++               //[Benchmark]
+                public async Task RunAlicePaysBob()
+                {
+                        int paymentsLeft = TotalPayments;
+@@ -87,7 +87,7 @@ namespace Lightning.Tests
+                        Tester.CreateChannels(froms, tos).GetAwaiter().GetResult();
+                        Alice.WaitRouteTo(Bob).GetAwaiter().GetResult();
+                }
+-               //[Benchmark]
++               [Benchmark]
+                public async Task RunAlicePaysBobViaCarol()
+                {
+                        int paymentsLeft = TotalPayments;
 ```
 
 ### Results
 
-We include `RunAlicePaysBob` as a comparaison in the table.
-
 ``` ini
 
-BenchmarkDotNet=v0.10.14, OS=Windows 10.0.16299.431 (1709/FallCreatorsUpdate/Redstone3)
+BenchmarkDotNet=v0.10.14, OS=Windows 10.0.16299.492 (1709/FallCreatorsUpdate/Redstone3)
 Intel Core i7-6500U CPU 2.50GHz (Skylake), 1 CPU, 4 logical and 2 physical cores
-Frequency=2531249 Hz, Resolution=395.0619 ns, Timer=TSC
-.NET Core SDK=2.1.300-rc1-008673
+Frequency=2531248 Hz, Resolution=395.0620 ns, Timer=TSC
+.NET Core SDK=2.1.300
   [Host]     : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
-  Job-RZOJKQ : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
+  Job-MIVEIF : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
 
-InvocationCount=16  LaunchCount=1  TargetCount=100  
-WarmupCount=0  
+InvocationCount=1  LaunchCount=1  TargetCount=100  
+UnrollFactor=1  WarmupCount=0  
 
 ```
-|                  Method | CarolsCount |       Mean |    Error |    StdDev |
-|------------------------ |------------ |-----------:|---------:|----------:|
-| **RunAlicePaysBob** |           **0** | **295.4 ms** |   **8.156 ms** |  **23.00 ms** | **3.38** |
-| **RunAlicePaysBobViaCarol** |           **1** |   **540.0 ms** | **16.40 ms** |  **47.83 ms** |
-| **RunAlicePaysBobViaCarol** |           **4** | **1,230.7 ms** | **48.62 ms** | **143.36 ms** |
+|                  Method | Concurrency | CarolsCount |    Mean |    Error |   StdDev |  Median |  Payments/s |
+|------------------------ |------------ |------------ |--------:|---------:|---------:|--------:|--------:|
+| **RunAlicePaysBobViaCarol** |          **30** |           **0** | **1.860 s** | **0.1459 s** | **0.4163 s** | **1.702 s** | **29.37** |
+| **RunAlicePaysBobViaCarol** |          **30** |           **1** | **4.245 s** | **0.2863 s** | **0.8123 s** | **4.121 s** | **12.13** |
+| **RunAlicePaysBobViaCarol** |          **30** |           **2** | **6.160 s** | **0.2840 s** | **0.8104 s** | **6.002 s** | **8.33** |
+| **RunAlicePaysBobViaCarol** |          **30** |           **3** | **7.913 s** | **0.3980 s** | **1.1226 s** | **7.606 s** | **6.57** |
 
 
-![RunAlicePaysBobViaCarol-facetTimelineSmooth](images/Benchmarks2-RunAlicePaysBobViaCarol-facetTimelineSmooth.png)
 
-The result show that each hop will increase the latency of a single payment by `240ms`.
+![RunAlicePaysBobViaCarol-facetTimelineSmooth](images/Benchmarks-RunAlicePaysBobViaCarol-facetTimeline.png)
+![Benchmarks-RunAlicePaysBobViaCarol-density](images/Benchmarks-RunAlicePaysBobViaCarol-density.png)
+
+Adding hops is impacting the throughput linearly.
 
 ## Scenario: Alices pay Bob
 
@@ -319,61 +304,79 @@ We fixed `Concurrency` and varied `AliceCount`.
 
 ```diff
 diff --git a/bench/Lightning.Bench/Benchmarks.cs b/bench/Lightning.Bench/Benchmarks.cs
-index 89b6bad..87a8430 100644
+index 09fedd0..76e3154 100644
 --- a/bench/Lightning.Bench/Benchmarks.cs
 +++ b/bench/Lightning.Bench/Benchmarks.cs
 @@ -13,13 +13,13 @@ namespace Lightning.Tests
  {
- 	public class Benchmarks
- 	{
--		//[Params(1, 3, 5)]
-+		[Params(4, 7, 10)]
- 		public int AliceCount
- 		{
- 			get; set;
- 		} = 5;
- 
--		[Params(1, 4, 7, 10)]
-+		//[Params(1, 4, 7, 10)]
- 		public int Concurrency
- 		{
- 			get; set;
-@@ -49,7 +49,7 @@ namespace Lightning.Tests
- 			Tester.Start();
- 			Tester.CreateChannel(Alice, Bob).GetAwaiter().GetResult();
- 		}
--		[Benchmark]
-+		//[Benchmark]
- 		public async Task RunAlicePaysBob()
- 		{
- 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
-@@ -117,7 +117,7 @@ namespace Lightning.Tests
- 			Alices[Alices.Length - 1].WaitRouteTo(Bob).GetAwaiter().GetResult();
- 		}
- 
--		//[Benchmark]
-+		[Benchmark]
- 		public async Task RunAlicesPayBob()
- 		{
- 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
+        public class Benchmarks
+        {
+-               //[Params(4, 7, 10)]
++               [Params(1, 2, 3, 4)]
+                public int AliceCount
+                {
+                        get; set;
+                } = 5;
 
+-               [Params(20, 40, 60, 80)]
++               [Params(30)]
+                public int Concurrency
+                {
+                        get; set;
+@@ -28,7 +28,7 @@ namespace Lightning.Tests
+                public int TotalPayments
+                {
+                        get; set;
+-               } = 100;
++               } = 50;
+
+                //[Params(1, 3, 5)]
+                public int CarolsCount
+@@ -53,7 +53,7 @@ namespace Lightning.Tests
+                        Tester.Start();
+                        Tester.CreateChannels(new[] { Alice }, new[] { Bob }).GetAwaiter().GetResult();
+                }
+-               [Benchmark]
++               //[Benchmark]
+                public async Task RunAlicePaysBob()
+                {
+                        int paymentsLeft = TotalPayments;
+@@ -123,7 +123,7 @@ namespace Lightning.Tests
+                        Task.WaitAll(Alices.Select(a => a.WaitRouteTo(Bob)).ToArray());
+                }
+
+-               //[Benchmark]
++               [Benchmark]
+                public async Task RunAlicesPayBob()
+                {
+                        int paymentsLeft = TotalPayments;
 ```
 
 ### Results
 
 Let's compare the result of X Alices payment 1 Bob versus 1 Alice paying 7 time at once 1 Bob. The result is as follow:
 
-|          Method | AliceCount |       Mean |     Error |   StdDev  |Payments/s
-|---------------- |----------- |-----------:|----------:|-----------:|-----------:|
-| RunAlicePaysBob |           1 | 295.4 ms |   8.156 ms |  23.00 ms | 3.38 |
-| **RunAlicesPayBob** |          **4** |   **953.5 ms** |  **40.70 ms** | **114.1 ms** | **4.27** |
-| RunAlicePaysBob |           4 | 479.9 ms |  39.215 ms | 115.01 ms | 8.33 |
-| **RunAlicesPayBob** |          **7** | **1,700.7 ms** |  **93.04 ms** | **274.3 ms**  | **4.11** |
-| RunAlicePaysBob |           7 | 766.8 ms |  81.134 ms | 239.22 ms | 9.12 | 
-| **RunAlicesPayBob** |         **10** | **2,773.1 ms** | **128.20 ms** | **376.0 ms**  |  **3.06** |  
-| RunAlicePaysBob |          10 | 970.5 ms | 120.447 ms | 355.14 ms | 10.30 |
+``` ini
 
-![Benchmarks3-RunAlicesPayBob-facetTimelineSmooth.png](images/Benchmarks3-RunAlicesPayBob-facetTimelineSmooth.png)
+BenchmarkDotNet=v0.10.14, OS=Windows 10.0.16299.492 (1709/FallCreatorsUpdate/Redstone3)
+Intel Core i7-6500U CPU 2.50GHz (Skylake), 1 CPU, 4 logical and 2 physical cores
+Frequency=2531248 Hz, Resolution=395.0620 ns, Timer=TSC
+.NET Core SDK=2.1.300
+  [Host]     : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
+  Job-FVRONC : .NET Core 2.0.7 (CoreCLR 4.6.26328.01, CoreFX 4.6.26403.03), 64bit RyuJIT
+
+InvocationCount=1  LaunchCount=1  TargetCount=100  
+UnrollFactor=1  WarmupCount=0  
+
+```
+|          Method | AliceCount | Concurrency |    Mean |    Error |   StdDev |  Median |  Payments / s |
+|---------------- |----------- |------------ |--------:|---------:|---------:|--------:|--------:|
+| **RunAlicesPayBob** |          **1** |          **30** | **1.728 s** | **0.0426 s** | **0.1186 s** | **1.722 s** | **29.03** |
+| **RunAlicesPayBob** |          **2** |          **30** | **2.208 s** | **0.1491 s** | **0.4031 s** | **2.067 s** | **24.18** |
+| **RunAlicesPayBob** |          **3** |          **30** | **2.473 s** | **0.1012 s** | **0.2820 s** | **2.423 s** | **20.63** |
+| **RunAlicesPayBob** |          **4** |          **30** | **2.565 s** | **0.1035 s** | **0.2938 s** | **2.500 s** | **20** |
+
+![Benchmarks-RunAlicesPayBob-facetTimelineSmooth.png](images/Benchmarks-RunAlicesPayBob-facetTimelineSmooth.png)
 
 We can see we are capped at maximum `4.27 payment per seconds` for 4 Alices versus `10.00 payment per seconds` for 1 Alices paying 10 times at once.
 
