@@ -131,6 +131,14 @@ docker build --build-arg DEVELOPER=1 --build-arg TRACE_TOOLS=true -t nicolasdori
 
 ### Explanation
 
+You can load this example the following command in the root folder of this project, this part describe what happen if you run it:
+
+```bash
+git checkout contest-RunAlicePaysBob
+cd LightningBenchmarks/bench/Lightning.Bench
+./run.sh
+```
+
 When you ran `run` script, the default scenario, BenchmarkDotNet will find all methods with the `[Benchmark]` attribute inside `Benchmarks.cs`.
 
 Only one has the attribute: `RunAlicePaysBob`.
@@ -232,6 +240,14 @@ We will see later how we can analyze performance issues at the code level via fl
 
 ### Explanation
 
+You can load this example the following command in the root folder of this project, this part describe what happen if you run it:
+
+```bash
+git checkout contest-RunAlicePaysBobViaCarol
+cd LightningBenchmarks/bench/Lightning.Bench
+./run.sh
+```
+
 This test is aimed at benchmarking the influence of intermediaries (Carols) on a payment between Alice and Bob.
 
 For this, before running `run` script, we fix `Concurrency` to 1, and will set `CarolsCount` to 1, 4.
@@ -312,6 +328,14 @@ The result show that each hop will increase the latency of a single payment by `
 ## Scenario: Alices pay Bob
 
 ### Explanation
+
+You can load this example the following command in the root folder of this project, this part describe what happen if you run it:
+
+```bash
+git checkout contest-RunAlicesPayBob
+cd LightningBenchmarks/bench/Lightning.Bench
+./run.sh
+```
 
 In this scenario, we will study the influence of multiple Alices paying the same Bob, and will compare this to the first `Alice pays Bob` scenario.
 
