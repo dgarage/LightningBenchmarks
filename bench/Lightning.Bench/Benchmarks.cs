@@ -13,13 +13,13 @@ namespace Lightning.Tests
 {
 	public class Benchmarks
 	{
-		//[Params(4, 7, 10)]
+		[Params(4, 7, 10)]
 		public int AliceCount
 		{
 			get; set;
 		} = 5;
 
-		[Params(1, 4, 7, 10)]
+		//[Params(1, 4, 7, 10)]
 		public int Concurrency
 		{
 			get; set;
@@ -49,7 +49,7 @@ namespace Lightning.Tests
 			Tester.Start();
 			Tester.CreateChannels(new[] { Alice }, new[] { Bob }).GetAwaiter().GetResult();
 		}
-		[Benchmark]
+		//[Benchmark]
 		public async Task RunAlicePaysBob()
 		{
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
@@ -111,7 +111,7 @@ namespace Lightning.Tests
 			Task.WaitAll(Alices.Select(a => a.WaitRouteTo(Bob)).ToArray());
 		}
 
-		//[Benchmark]
+		[Benchmark]
 		public async Task RunAlicesPayBob()
 		{
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
