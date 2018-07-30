@@ -19,7 +19,7 @@ namespace Lightning.Tests
 			get; set;
 		} = 5;
 
-		[Params(1, 4, 7, 10)]
+		//[Params(1, 4, 7, 10)]
 		public int Concurrency
 		{
 			get; set;
@@ -27,6 +27,7 @@ namespace Lightning.Tests
 
 
 		//[Params(1, 3, 5)]
+		[Params(1, 4)]
 		public int CarolsCount
 		{
 			get; set;
@@ -49,7 +50,7 @@ namespace Lightning.Tests
 			Tester.Start();
 			Tester.CreateChannels(new[] { Alice }, new[] { Bob }).GetAwaiter().GetResult();
 		}
-		[Benchmark]
+		//[Benchmark]
 		public async Task RunAlicePaysBob()
 		{
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
@@ -79,7 +80,7 @@ namespace Lightning.Tests
 			Tester.CreateChannels(froms, tos).GetAwaiter().GetResult();
 			Alice.WaitRouteTo(Bob).GetAwaiter().GetResult();
 		}
-		//[Benchmark]
+		[Benchmark]
 		public async Task RunAlicePaysBobViaCarol()
 		{
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
