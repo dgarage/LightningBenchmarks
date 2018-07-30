@@ -128,12 +128,11 @@ namespace Lightning.Tests
 		{
 			int paymentsLeft = TotalPayments;
 			await Task.WhenAll(Enumerable.Range(0, Concurrency)
-				.SelectMany(_ => Enumerable.Range(0, AliceCount))
 				.Select(async _ =>
 				{
 					while(Interlocked.Decrement(ref paymentsLeft) >= 0)
 					{
-						var alice = Alices[_];
+						var alice = Alices[_ % Alices.Length];
 						var invoice = await Bob.GetRPC(_).CreateInvoice(LightMoney.Satoshis(1000));
 						await alice.GetRPC(_).SendAsync(invoice.BOLT11);
 					}
